@@ -1,0 +1,10 @@
+{
+  "name": "@task2do/schema",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "build": "echo 'Schema building...'",
+    "test": "echo 'Schema testing...'"
+  }
+}

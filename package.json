@@ -1,0 +1,17 @@
+{
+  "name": "task2do-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Task2Do Agile Project Management Tool",
+  "scripts": {
+    "dev": "pnpm -r run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test"
+  },
+  "keywords": [],
+  "author": "vyshnavi",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

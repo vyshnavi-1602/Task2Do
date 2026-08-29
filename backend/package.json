@@ -1,0 +1,10 @@
+{
+  "name": "@task2do/backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Backend dev server starting...'",
+    "build": "echo 'Backend building...'",
+    "test": "echo 'Backend testing...'"
+  }
+}

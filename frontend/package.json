@@ -1,0 +1,10 @@
+{
+  "name": "@task2do/frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Frontend dev server starting...'",
+    "build": "echo 'Frontend building...'",
+    "test": "echo 'Frontend testing...'"
+  }
+}
