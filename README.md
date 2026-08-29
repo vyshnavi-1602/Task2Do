@@ -16,3 +16,13 @@ Task2Do is a complete Agile project management web application. It allows users 
 - **Backend**: Node.js + Express.js
 - **Database**: PostgreSQL (Prisma ORM)
 - **Real-time**: Socket.io
+
+## Architecture Diagram
+
+```mermaid
+graph TD
+    Client[React Frontend] <--> |REST API| Server[Node/Express Backend]
+    Client <--> |WebSockets| Server
+    Server <--> |Prisma ORM| DB[(PostgreSQL Database)]
+    Server -.-> |Sends Email| Email[Third-Party Email API]
+```
