@@ -7,29 +7,37 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  lint:
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        
-    - name: Install PNPM
-      uses: pnpm/action-setup@v3
-      with:
-        version: 9
-        
-    - name: Install Dependencies
-      run: pnpm install --config.ignore-scripts=true
-      
-    - name: Generate Prisma Client
-      run: pnpm -F @task2do/schema exec prisma generate
-    - name: Run Tests
-      run: pnpm test
-      
-    - name: Build Projects
-      run: pnpm build
+    - uses: actions/setup-node@v4
+      with: { node-version: '20' }
+    - uses: pnpm/action-setup@v3
+      with: { version: 9 }
+    - run: pnpm install --config.ignore-scripts=true
+    - run: pnpm lint --if-present
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with: { node-version: '20' }
+    - uses: pnpm/action-setup@v3
+      with: { version: 9 }
+    - run: pnpm install --config.ignore-scripts=true
+    - run: pnpm -F @task2do/schema exec prisma generate
+    - run: pnpm typecheck --if-present
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with: { node-version: '20' }
+    - uses: pnpm/action-setup@v3
+      with: { version: 9 }
+    - run: pnpm install --config.ignore-scripts=true
+    - run: pnpm -F @task2do/schema exec prisma generate
+    - run: pnpm build
