@@ -6,5 +6,13 @@
   "scripts": {
     "build": "echo 'Schema building...'",
     "test": "echo 'Schema testing...'"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "prisma": "5.22.0",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
   }
 }

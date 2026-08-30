@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String            @id @default(uuid())
+  email          String            @unique
+  passwordHash   String
+  name           String
+  avatarUrl      String?
+  createdAt      DateTime          @default(now())
+  
+  // Relations
+  workspaceRoles WorkspaceMember[]
+  reportedIssues Issue[]           @relation("IssueReporter")
+  assignedIssues Issue[]           @relation("IssueAssignee")
+  comments       Comment[]
+  notifications  Notification[]
+}
+
+model Workspace {
+  id        String            @id @default(uuid())
+  name      String
+  createdAt DateTime          @default(now())
+  
+  // Relations
+  members   WorkspaceMember[]
+  projects  Project[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  role        Role      @default(MEMBER)
+  
+  // Relations
+  userId      String
+  workspaceId String
+  user        User      @relation(fields: [userId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([userId, workspaceId])
+  @@index([userId])
+  @@index([workspaceId])
+}
+
+model Project {
+  id              String    @id @default(uuid())
+  name            String
+  key             String    // e.g., "ENG"
+  nextIssueNumber Int       @default(1)
+  
+  // Relations
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  sprints     Sprint[]
+  issues      Issue[]
+
+  @@unique([workspaceId, key]) // Project keys must be unique within a workspace
+  @@index([workspaceId])
+}
+
+model Sprint {
+  id        String       @id @default(uuid())
+  name      String
+  startDate DateTime?
+  endDate   DateTime?
+  status    SprintStatus @default(PLANNED)
+  
+  // Relations
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id])
+  issues    Issue[]
+
+  @@index([projectId])
+}
+
+model Issue {
+  id          String   @id @default(uuid())
+  key         String   @unique // e.g., "ENG-123"
+  title       String
+  description String?
+  status      String   @default("TO_DO")
+  priority    Priority @default(MEDIUM)
+  type        ItemType @default(TASK)
+  points      Int?
+  rank        Int      // For drag-and-drop ordering
+  version     Int      @default(1) // Optimistic concurrency control
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  sprintId    String?
+  sprint      Sprint?  @relation(fields: [sprintId], references: [id])
+  
+  reporterId  String
+  reporter    User     @relation("IssueReporter", fields: [reporterId], references: [id])
+  assigneeId  String?
+  assignee    User?    @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  
+  comments    Comment[]
+
+  @@index([projectId])
+  @@index([sprintId])
+  @@index([assigneeId])
+  @@index([reporterId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  createdAt DateTime @default(now())
+  
+  // Relations
+  issueId   String
+  issue     Issue    @relation(fields: [issueId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([issueId])
+  @@index([authorId])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  recipientId String
+  recipient   User     @relation(fields: [recipientId], references: [id])
+
+  @@index([recipientId])
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ItemType {
+  TASK
+  BUG
+  STORY
+  EPIC
+}

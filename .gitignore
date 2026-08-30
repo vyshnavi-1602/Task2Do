@@ -1,2 +1,11 @@
 # Ignore local planning documentation
 docs/
+
+# Node
+node_modules/
+dist/
+build/
+.env
+.env.*
+.DS_Store
+*.log
