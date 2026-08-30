@@ -104,7 +104,7 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, error: { message: 'Issue not found' } });
   }
 
-  // STATUS VALIDATION
+  // STATUS VALIDATION (IssueStatus Enum)
   if (status && !['TO_DO', 'IN_PROGRESS', 'DONE'].includes(status)) {
     return res.status(400).json({ success: false, error: { message: 'Invalid status value' } });
   }
@@ -125,7 +125,7 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  // SPRINT VALIDATION (Must belong to current project)
+  // SPRINT VALIDATION
   if (sprintId) {
     const sprint = await prisma.sprint.findUnique({
       where: { id: sprintId },
@@ -135,23 +135,78 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  const updated = await prisma.issue.update({
-    where: { id: issueId },
-    data: {
-      ...(title && { title }),
-      ...(description !== undefined && { description }),
-      ...(status && { status }),
-      ...(priority && { priority: priority as Priority }),
-      ...(type && { type: type as ItemType }),
-      ...(points !== undefined && { points: points ? parseInt(points) : null }),
-      ...(assigneeId !== undefined && { assigneeId }),
-      ...(sprintId !== undefined && { sprintId }),
-      ...(rank !== undefined && { rank: parseInt(rank) }),
-      version: { increment: 1 }, // Optimistic concurrency control bump
-    },
-    include: {
-      assignee: { select: { id: true, name: true, avatarUrl: true } },
+  // If rank or status is changing, we use a transaction to safely update and shift surrounding issues
+  const updated = await prisma.$transaction(async (tx) => {
+    const oldStatus = issue.status;
+    const newStatus = status || oldStatus;
+    const oldRank = issue.rank;
+    
+    // Determine the active sprint constraint. 
+    // For Kanban board movements, we ensure we are shifting ranks within the SAME sprint.
+    const effectiveSprintId = sprintId !== undefined ? sprintId : issue.sprintId;
+    
+    let newRank = rank;
+
+    if (newRank !== undefined || newStatus !== oldStatus) {
+      if (newRank === undefined) {
+        // If status changed but rank didn't, append to the bottom of the new column
+        const maxRankIssue = await tx.issue.findFirst({
+          where: { projectId, sprintId: effectiveSprintId, status: newStatus as any },
+          orderBy: { rank: 'desc' }
+        });
+        newRank = maxRankIssue ? maxRankIssue.rank + 1 : 1;
+      }
+
+      if (oldStatus === newStatus) {
+        // Reordering within the SAME column
+        if (newRank < oldRank) {
+          // Moving up: shift intermediate items down
+          await tx.issue.updateMany({
+            where: { projectId, sprintId: effectiveSprintId, status: oldStatus, rank: { gte: newRank, lt: oldRank } },
+            data: { rank: { increment: 1 } }
+          });
+        } else if (newRank > oldRank) {
+          // Moving down: shift intermediate items up
+          await tx.issue.updateMany({
+            where: { projectId, sprintId: effectiveSprintId, status: oldStatus, rank: { lte: newRank, gt: oldRank } },
+            data: { rank: { decrement: 1 } }
+          });
+        }
+      } else {
+        // Moving to a DIFFERENT column
+        // 1. Shift old column items up to fill the gap
+        await tx.issue.updateMany({
+          where: { projectId, sprintId: issue.sprintId, status: oldStatus, rank: { gt: oldRank } },
+          data: { rank: { decrement: 1 } }
+        });
+
+        // 2. Shift new column items down to make space
+        await tx.issue.updateMany({
+          where: { projectId, sprintId: effectiveSprintId, status: newStatus as any, rank: { gte: newRank } },
+          data: { rank: { increment: 1 } }
+        });
+      }
     }
+
+    // Finally update the issue itself
+    return await tx.issue.update({
+      where: { id: issueId },
+      data: {
+        ...(title && { title }),
+        ...(description !== undefined && { description }),
+        ...(status && { status: status as any }),
+        ...(priority && { priority: priority as any }),
+        ...(type && { type: type as any }),
+        ...(points !== undefined && { points: points ? parseInt(points) : null }),
+        ...(assigneeId !== undefined && { assigneeId }),
+        ...(sprintId !== undefined && { sprintId }),
+        ...(newRank !== undefined && { rank: parseInt(newRank) }),
+        version: { increment: 1 },
+      },
+      include: {
+        assignee: { select: { id: true, name: true, avatarUrl: true } },
+      }
+    });
   });
 
   res.status(200).json({ success: true, data: updated });

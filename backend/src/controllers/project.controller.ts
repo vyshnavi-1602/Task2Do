@@ -120,3 +120,69 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response) =>
 
   res.status(200).json({ success: true, data: { message: 'Project deleted' } });
 });
+
+export const getBoard = asyncHandler(async (req: Request, res: Response) => {
+  const { workspaceId, projectId } = req.params;
+
+  // First verify project exists and belongs to workspace
+  const project = await prisma.project.findUnique({
+    where: { id: projectId, workspaceId },
+  });
+
+  if (!project) {
+    return res.status(404).json({ success: false, error: { message: 'Project not found' } });
+  }
+
+  // Find the active sprint for this project
+  const activeSprint = await prisma.sprint.findFirst({
+    where: {
+      projectId,
+      status: 'ACTIVE',
+    },
+  });
+
+  if (!activeSprint) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        sprint: null,
+        columns: {
+          TO_DO: [],
+          IN_PROGRESS: [],
+          DONE: []
+        }
+      }
+    });
+  }
+
+  // Fetch all issues for the active sprint
+  const issues = await prisma.issue.findMany({
+    where: {
+      projectId,
+      sprintId: activeSprint.id,
+    },
+    include: {
+      assignee: {
+        select: { id: true, name: true, avatarUrl: true }
+      }
+    },
+    orderBy: {
+      rank: 'asc'
+    }
+  });
+
+  // Group issues by status
+  const columns = {
+    TO_DO: issues.filter(issue => issue.status === 'TO_DO'),
+    IN_PROGRESS: issues.filter(issue => issue.status === 'IN_PROGRESS'),
+    DONE: issues.filter(issue => issue.status === 'DONE'),
+  };
+
+  res.status(200).json({
+    success: true,
+    data: {
+      sprint: activeSprint,
+      columns,
+    }
+  });
+});

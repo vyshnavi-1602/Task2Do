@@ -84,7 +84,7 @@ model Issue {
   key         String   @unique // e.g., "ENG-123"
   title       String
   description String?
-  status      String   @default("TO_DO")
+  status      IssueStatus @default(TO_DO)
   priority    Priority @default(MEDIUM)
   type        ItemType @default(TASK)
   points      Int?
@@ -166,4 +166,10 @@ enum ItemType {
   BUG
   STORY
   EPIC
+}
+
+enum IssueStatus {
+  TO_DO
+  IN_PROGRESS
+  DONE
 }

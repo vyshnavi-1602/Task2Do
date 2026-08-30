@@ -5,11 +5,13 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import HeroPage from './pages/HeroPage';
 import WorkspaceLayout from './pages/WorkspaceLayout';
 import ProjectListPage from './pages/ProjectListPage';
 import MembersPage from './pages/MembersPage';
 import ProjectLayout from './pages/ProjectLayout';
 import BacklogPage from './pages/BacklogPage';
+import BoardPage from './pages/BoardPage';
 
 // Configure TanStack Query Client
 const queryClient = new QueryClient({
@@ -30,9 +32,11 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             
+            <Route path="/" element={<HeroPage />} />
+
             {/* Protected Routes */}
             <Route 
-              path="/" 
+              path="/dashboard" 
               element={
                 <ProtectedRoute>
                   <DashboardPage />
@@ -64,6 +68,7 @@ function App() {
             >
               <Route index element={<Navigate to="backlog" replace />} />
               <Route path="backlog" element={<BacklogPage />} />
+              <Route path="board" element={<BoardPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

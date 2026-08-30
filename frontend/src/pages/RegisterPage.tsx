@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
@@ -6,6 +6,13 @@ import { useAuth } from '../context/AuthContext';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export default function RegisterPage() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,12 +21,12 @@ export default function RegisterPage() {
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post('/auth/register', { name, email, password });
-      return response;
+      const user = await apiClient.post('/auth/register', { name, email, password });
+      return user;
     },
-    onSuccess: (data: any) => {
-      login(data);
-      navigate('/');
+    onSuccess: (user) => {
+      login(user as any);
+      navigate('/dashboard');
     },
   });
 
@@ -29,138 +36,358 @@ export default function RegisterPage() {
     mutate();
   };
 
+  const currentStyles = getStyles(isMobile);
+
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Create an account</h2>
-        <p style={styles.subtitle}>Get started with Task2Do</p>
-
-        {error && (
-          <div style={styles.errorAlert}>
-            {error.message || 'Registration failed. Please try again.'}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Name</label>
-            <input 
-              type="text" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
-              style={styles.input} 
-              required 
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email</label>
-            <input 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              style={styles.input} 
-              required 
-            />
+    <div style={currentStyles.container}>
+      <Link to="/" style={currentStyles.backLink}>
+        <span>←</span> Back to home
+      </Link>
+      
+      <div style={currentStyles.mainCard}>
+        {/* Left Panel: Information & Branding */}
+        <div style={currentStyles.leftPanel}>
+          <div style={currentStyles.logoWrapper}>
+            <img src="/logo.png" alt="Task2Do Logo" style={currentStyles.logoImage} />
           </div>
           
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              style={styles.input} 
-              required 
-            />
+          <h1 style={currentStyles.headline}>
+            Join the agile <br />
+            <span style={{ color: 'var(--accent-color)' }}>revolution.</span>
+          </h1>
+          <p style={currentStyles.subheadline}>
+            Create your account in seconds and start managing your projects like a pro.
+          </p>
+          
+          <div style={currentStyles.featureList}>
+            <div style={currentStyles.featureItem}>
+              <div style={currentStyles.featureIcon}>🚀</div>
+              <div>
+                <h4 style={currentStyles.featureTitle}>Fast Setup</h4>
+                <p style={currentStyles.featureDesc}>Get your first workspace running instantly.</p>
+              </div>
+            </div>
+            <div style={currentStyles.featureItem}>
+              <div style={currentStyles.featureIcon}>🤝</div>
+              <div>
+                <h4 style={currentStyles.featureTitle}>Team Collab</h4>
+                <p style={currentStyles.featureDesc}>Invite members and work together smoothly.</p>
+              </div>
+            </div>
+            <div style={currentStyles.featureItem}>
+              <div style={currentStyles.featureIcon}>🛡️</div>
+              <div>
+                <h4 style={currentStyles.featureTitle}>Secure</h4>
+                <p style={currentStyles.featureDesc}>Your data is encrypted and safe with us.</p>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <button type="submit" disabled={isPending} style={styles.button}>
-            {isPending ? <LoadingSpinner /> : 'Register'}
-          </button>
-        </form>
+        {/* Right Panel: Authentication Form */}
+        <div style={currentStyles.rightPanel}>
+          <div style={currentStyles.formContainer}>
+            <h2 style={currentStyles.title}>Create an account</h2>
+            <p style={currentStyles.subtitle}>Get started with Task2Do for free</p>
 
-        <p style={styles.footerText}>
-          Already have an account? <Link to="/login" style={{ color: 'var(--accent-color)' }}>Sign in</Link>
-        </p>
+            {error && (
+              <div style={currentStyles.errorAlert}>
+                {error.message || 'Registration failed. Please try again.'}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={currentStyles.form}>
+              <div style={currentStyles.inputGroup}>
+                <label style={currentStyles.label}>Name</label>
+                <div style={currentStyles.inputWrapper}>
+                  <span style={currentStyles.inputIcon}>👤</span>
+                  <input 
+                    type="text" 
+                    placeholder="Enter your full name"
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)} 
+                    style={currentStyles.input} 
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div style={currentStyles.inputGroup}>
+                <label style={currentStyles.label}>Email</label>
+                <div style={currentStyles.inputWrapper}>
+                  <span style={currentStyles.inputIcon}>✉️</span>
+                  <input 
+                    type="email" 
+                    placeholder="Enter your email address"
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    style={currentStyles.input} 
+                    required 
+                  />
+                </div>
+              </div>
+              
+              <div style={currentStyles.inputGroup}>
+                <label style={currentStyles.label}>Password</label>
+                <div style={currentStyles.inputWrapper}>
+                  <span style={currentStyles.inputIcon}>🔒</span>
+                  <input 
+                    type="password" 
+                    placeholder="Create a password"
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    style={currentStyles.input} 
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div style={currentStyles.actionGroup}>
+                <button type="submit" disabled={isPending} style={currentStyles.button}>
+                  {isPending ? <LoadingSpinner /> : 'Create account →'}
+                </button>
+                
+                <div style={currentStyles.divider}>
+                  <span style={currentStyles.dividerText}>or register with</span>
+                </div>
+                
+                <button type="button" style={currentStyles.googleButton} onClick={() => alert('Google auth not yet implemented')}>
+                  <span style={{ marginRight: '8px' }}>G</span> Register with Google
+                </button>
+              </div>
+            </form>
+
+            <p style={currentStyles.footerText}>
+              Already have an account? <Link to="/login" style={currentStyles.registerLink}>Log in</Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// Reusing same styles from Login for consistency
-const styles: Record<string, React.CSSProperties> = {
+const getStyles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   container: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 'var(--space-4)',
+    backgroundColor: 'var(--bg-color)',
+    padding: isMobile ? '1rem' : '2rem',
+    position: 'relative',
   },
-  card: {
+  backLink: {
+    position: 'absolute',
+    top: isMobile ? '1rem' : '2rem',
+    left: isMobile ? '1rem' : '2rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    color: 'var(--text-secondary)',
+    textDecoration: 'none',
+    fontSize: '0.9rem',
+    fontWeight: 500,
+  },
+  mainCard: {
+    display: 'flex',
+    flexDirection: isMobile ? 'column' : 'row',
     width: '100%',
-    maxWidth: '400px',
-    backgroundColor: 'var(--surface-color)',
-    padding: 'var(--space-8)',
-    borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-md)',
+    maxWidth: '850px',
+    backgroundColor: '#fff',
+    borderRadius: '24px',
+    boxShadow: '0 20px 40px -15px rgba(0,0,0,0.08)',
     border: '1px solid var(--border-color)',
+    overflow: 'hidden',
+    marginTop: isMobile ? '3rem' : '0', // Leave space for back link on mobile
+  },
+  leftPanel: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: isMobile ? '2rem' : '3rem',
+    backgroundColor: 'rgba(13, 148, 136, 0.03)',
+    borderRight: isMobile ? 'none' : '1px solid var(--border-color)',
+    borderBottom: isMobile ? '1px solid var(--border-color)' : 'none',
+  },
+  rightPanel: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: isMobile ? '2rem 1.5rem' : '2.5rem',
+    backgroundColor: '#fff',
+  },
+  logoWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '3rem',
+  },
+  logoImage: {
+    height: '35px',
+    objectFit: 'contain',
+  },
+  headline: {
+    fontSize: isMobile ? '1.75rem' : '2.2rem',
+    fontWeight: 800,
+    lineHeight: 1.2,
+    color: 'var(--text-primary)',
+    marginBottom: '1rem',
+  },
+  subheadline: {
+    fontSize: isMobile ? '0.9rem' : '0.95rem',
+    color: 'var(--text-secondary)',
+    lineHeight: 1.6,
+    marginBottom: '2rem',
+  },
+  featureList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1.5rem',
+  },
+  featureItem: {
+    display: 'flex',
+    gap: '1rem',
+    alignItems: 'flex-start',
+  },
+  featureIcon: {
+    width: '32px',
+    height: '32px',
+    backgroundColor: 'rgba(13, 148, 136, 0.1)',
+    color: 'var(--accent-color)',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '0.9rem',
+    flexShrink: 0,
+  },
+  featureTitle: {
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+    margin: '0 0 0.25rem 0',
+  },
+  featureDesc: {
+    fontSize: '0.85rem',
+    color: 'var(--text-secondary)',
+    margin: 0,
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: '380px',
   },
   title: {
-    fontSize: '1.5rem',
-    fontWeight: 600,
-    marginBottom: 'var(--space-2)',
+    fontSize: '1.75rem',
+    fontWeight: 700,
+    marginBottom: '0.5rem',
+    color: 'var(--text-primary)',
+    textAlign: 'center',
   },
   subtitle: {
     color: 'var(--text-secondary)',
-    marginBottom: 'var(--space-6)',
-    fontSize: '0.875rem',
+    marginBottom: '2.5rem',
+    fontSize: '0.9rem',
+    textAlign: 'center',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 'var(--space-4)',
+    gap: '1.5rem',
+    textAlign: 'left',
   },
   inputGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 'var(--space-2)',
+    gap: '0.5rem',
   },
   label: {
-    fontSize: '0.875rem',
-    fontWeight: 500,
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+  },
+  inputWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: '1rem',
+    color: 'var(--text-muted)',
+    fontSize: '1rem',
   },
   input: {
-    padding: 'var(--space-3)',
-    borderRadius: 'var(--radius-md)',
+    width: '100%',
+    padding: '0.875rem 1rem 0.875rem 2.75rem',
+    borderRadius: '12px',
     border: '1px solid var(--border-color)',
-    backgroundColor: 'var(--bg-color)',
+    backgroundColor: '#f8fafc',
     color: 'var(--text-primary)',
-    fontSize: '1rem',
+    fontSize: '0.95rem',
+    transition: 'border-color 0.2s',
+  },
+  actionGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
   },
   button: {
-    padding: 'var(--space-3)',
+    padding: '1rem',
     backgroundColor: 'var(--accent-color)',
     color: '#fff',
-    borderRadius: 'var(--radius-md)',
+    borderRadius: '12px',
     fontWeight: 600,
     fontSize: '1rem',
-    marginTop: 'var(--space-2)',
-    transition: 'background-color var(--transition-fast)',
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)',
   },
-  errorAlert: {
-    padding: 'var(--space-3)',
-    backgroundColor: 'rgba(248, 81, 73, 0.1)',
-    color: 'var(--error-color)',
-    borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--error-color)',
-    marginBottom: 'var(--space-4)',
-    fontSize: '0.875rem',
+  divider: {
+    position: 'relative',
+    textAlign: 'center',
+    margin: '0',
+  },
+  dividerText: {
+    backgroundColor: '#fff',
+    padding: '0 1rem',
+    color: 'var(--text-muted)',
+    fontSize: '0.85rem',
+    position: 'relative',
+    zIndex: 1,
+  },
+  googleButton: {
+    padding: '0.875rem',
+    backgroundColor: '#fff',
+    color: 'var(--text-primary)',
+    borderRadius: '12px',
+    fontWeight: 500,
+    fontSize: '0.95rem',
+    border: '1px solid var(--border-color)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
   footerText: {
-    marginTop: 'var(--space-6)',
-    textAlign: 'center',
-    fontSize: '0.875rem',
+    marginTop: '2rem',
+    fontSize: '0.9rem',
     color: 'var(--text-secondary)',
-  }
-};
+    textAlign: 'center',
+  },
+  loginLink: {
+    color: 'var(--accent-color)',
+    fontWeight: 600,
+    textDecoration: 'none',
+  },
+  errorAlert: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    color: '#ef4444',
+    padding: '0.75rem',
+    borderRadius: '8px',
+    marginBottom: '1.5rem',
+    fontSize: '0.875rem',
+  },
+});

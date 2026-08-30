@@ -1,12 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useParams, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Menu, X } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export default function ProjectLayout() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
 
   const { data: project, isLoading, error } = useQuery({
     queryKey: ['project', workspaceId, projectId],
@@ -17,50 +34,70 @@ export default function ProjectLayout() {
     enabled: !!workspaceId && !!projectId,
   });
 
+  const isBacklog = location.pathname.includes('/backlog');
+  const isBoard = location.pathname.includes('/board');
+  const currentStyles = getStyles(isMobile, isSidebarOpen, isBoard);
+
   if (isLoading) {
-    return <div style={styles.center}><LoadingSpinner /></div>;
+    return <div style={currentStyles.center}><LoadingSpinner /></div>;
   }
 
   if (error || !project) {
-    return <div style={styles.center}>Project not found or access denied.</div>;
+    return <div style={currentStyles.center}>Project not found or access denied.</div>;
   }
 
-  const isBacklog = location.pathname.includes('/backlog');
-
   return (
-    <div style={styles.container}>
-      <aside style={styles.sidebar}>
-        <div style={styles.sidebarHeader}>
-          <div style={styles.projectIcon}>{project.key}</div>
+    <div style={currentStyles.container}>
+      {isMobile && (
+        <button onClick={toggleSidebar} style={currentStyles.mobileMenuBtn}>
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      )}
+
+      {/* Overlay for mobile sidebar */}
+      {isMobile && isSidebarOpen && (
+        <div style={currentStyles.overlay} onClick={() => setIsSidebarOpen(false)} />
+      )}
+
+      <aside style={currentStyles.sidebar}>
+        <div style={currentStyles.sidebarHeader}>
+          <div style={currentStyles.projectIcon}>{project.key}</div>
           <div>
-            <h2 style={styles.projectName}>{project.name}</h2>
-            <div style={styles.projectSubtitle}>Software Project</div>
+            <h2 style={currentStyles.projectName}>{project.name}</h2>
+            <div style={currentStyles.projectSubtitle}>Software Project</div>
           </div>
         </div>
         
-        <nav style={styles.nav}>
+        <nav style={currentStyles.nav}>
           <Link 
             to={`/workspaces/${workspaceId}/projects/${projectId}/backlog`} 
-            style={{ ...styles.navLink, ...(isBacklog ? styles.activeNavLink : {}) }}
+            style={{ ...currentStyles.navLink, ...(isBacklog ? currentStyles.activeNavLink : {}) }}
+            onClick={() => isMobile && setIsSidebarOpen(false)}
           >
             Backlog
           </Link>
-          {/* Board will be added in Phase 7 */}
+          <Link 
+            to={`/workspaces/${workspaceId}/projects/${projectId}/board`} 
+            style={{ ...currentStyles.navLink, ...(isBoard ? currentStyles.activeNavLink : {}) }}
+            onClick={() => isMobile && setIsSidebarOpen(false)}
+          >
+            Board
+          </Link>
         </nav>
 
         <div style={{ marginTop: 'auto' }}>
-          <Link to={`/workspaces/${workspaceId}/projects`} style={styles.backLink}>← Back to Projects</Link>
+          <Link to={`/workspaces/${workspaceId}/projects`} style={currentStyles.backLink}>← Back to Projects</Link>
         </div>
       </aside>
 
-      <main style={styles.main}>
+      <main style={currentStyles.main}>
         <Outlet context={{ project }} />
       </main>
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const getStyles = (isMobile: boolean, isSidebarOpen: boolean, isBoard: boolean = false): Record<string, React.CSSProperties> => ({
   center: {
     display: 'flex',
     justifyContent: 'center',
@@ -70,6 +107,33 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     display: 'flex',
     minHeight: '100vh',
+    position: 'relative',
+  },
+  mobileMenuBtn: {
+    position: 'fixed',
+    bottom: '24px',
+    right: '24px',
+    width: '56px',
+    height: '56px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--accent-color)',
+    color: '#fff',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    zIndex: 1000,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 998,
   },
   sidebar: {
     width: '260px',
@@ -78,6 +142,13 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 'var(--space-4)',
     display: 'flex',
     flexDirection: 'column',
+    position: isMobile ? 'fixed' : 'static',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 999,
+    transform: isMobile ? (isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+    transition: 'transform 0.3s ease',
   },
   sidebarHeader: {
     display: 'flex',
@@ -133,8 +204,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   main: {
     flex: 1,
-    padding: 'var(--space-8)',
+    padding: isBoard ? (isMobile ? 'var(--space-2)' : 'var(--space-4)') : (isMobile ? 'var(--space-4)' : 'var(--space-8)'),
     overflowY: 'auto',
+    overflowX: 'auto',
     backgroundColor: 'var(--bg-color)',
+    width: isMobile ? '100%' : 'calc(100% - 260px)',
   },
-};
+});

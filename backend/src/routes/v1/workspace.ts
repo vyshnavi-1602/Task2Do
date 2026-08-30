@@ -39,6 +39,7 @@ router.patch('/:workspaceId/projects/:projectId', requireWorkspaceMember('ADMIN'
 router.delete('/:workspaceId/projects/:projectId', requireWorkspaceMember('ADMIN'), projectController.deleteProject);
 
 // === SPRINTS & ISSUES (Nested under Project) ===
+router.get('/:workspaceId/projects/:projectId/board', requireWorkspaceMember('VIEWER'), projectController.getBoard);
 router.use('/:workspaceId/projects/:projectId/sprints', sprintRoutes);
 router.use('/:workspaceId/projects/:projectId/issues', issueRoutes);
 
