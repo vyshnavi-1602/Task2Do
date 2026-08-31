@@ -42,8 +42,8 @@ model WorkspaceMember {
   // Relations
   userId      String
   workspaceId String
-  user        User      @relation(fields: [userId], references: [id])
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workspaceId])
   @@index([userId])
@@ -58,7 +58,7 @@ model Project {
 
   // Relations
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   sprints     Sprint[]
   issues      Issue[]
 
@@ -75,7 +75,7 @@ model Sprint {
 
   // Relations
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues    Issue[]
 
   @@index([projectId])
@@ -98,9 +98,9 @@ model Issue {
 
   // Relations
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sprintId  String?
-  sprint    Sprint? @relation(fields: [sprintId], references: [id])
+  sprint    Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
 
   reporterId String
   reporter   User    @relation("IssueReporter", fields: [reporterId], references: [id])
@@ -135,9 +135,9 @@ model Comment {
 
   // Relations
   issueId  String
-  issue    Issue  @relation(fields: [issueId], references: [id])
+  issue    Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
   authorId String
-  author   User   @relation(fields: [authorId], references: [id])
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
   @@index([authorId])
@@ -152,10 +152,10 @@ model Notification {
 
   // Relations
   recipientId String
-  recipient   User   @relation(fields: [recipientId], references: [id])
+  recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
   
   issueId     String?
-  issue       Issue? @relation(fields: [issueId], references: [id])
+  issue       Issue? @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
   @@index([recipientId])
   @@index([issueId])
@@ -210,9 +210,9 @@ model IssueActivity {
 
   // Relations
   issueId String
-  issue   Issue  @relation(fields: [issueId], references: [id])
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
   userId  String
-  user    User   @relation(fields: [userId], references: [id])
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
   @@index([userId])

@@ -10,6 +10,7 @@ import WorkspaceLayout from './pages/WorkspaceLayout';
 import WorkspaceDashboardPage from './pages/WorkspaceDashboardPage';
 import ProjectListPage from './pages/ProjectListPage';
 import MembersPage from './pages/MembersPage';
+import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProjectLayout from './pages/ProjectLayout';
 import BacklogPage from './pages/BacklogPage';
 import BoardPage from './pages/BoardPage';
@@ -61,6 +62,7 @@ function App() {
                 <Route path="dashboard" element={<WorkspaceDashboardPage />} />
                 <Route path="projects" element={<ProjectListPage />} />
                 <Route path="members" element={<MembersPage />} />
+                <Route path="settings" element={<WorkspaceSettingsPage />} />
               </Route>
 
               <Route
@@ -84,3 +86,4 @@ function App() {
 }
 
 export default App;
+// trigger reload

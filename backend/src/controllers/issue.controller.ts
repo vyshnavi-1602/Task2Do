@@ -339,3 +339,4 @@ export const deleteIssue = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(200).json({ success: true, data: { message: 'Issue deleted' } });
 });
+// trigger reload

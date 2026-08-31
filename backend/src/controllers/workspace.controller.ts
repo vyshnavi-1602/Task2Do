@@ -71,6 +71,26 @@ export const getWorkspace = asyncHandler(async (req: Request, res: Response) => 
   res.status(200).json({ success: true, data: workspace });
 });
 
+export const deleteWorkspace = asyncHandler(async (req: Request, res: Response) => {
+  const { workspaceId } = req.params;
+
+  // Verify workspace exists
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+  });
+
+  if (!workspace) {
+    return res.status(404).json({ success: false, error: { message: 'Workspace not found' } });
+  }
+
+  // Delete workspace
+  await prisma.workspace.delete({
+    where: { id: workspaceId },
+  });
+
+  res.status(200).json({ success: true, data: { message: 'Workspace deleted successfully' } });
+});
+
 // === MEMBERS ===
 
 export const getMembers = asyncHandler(async (req: Request, res: Response) => {

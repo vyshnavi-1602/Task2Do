@@ -16,6 +16,7 @@ router.use(requireAuth);
 router.post('/', workspaceController.createWorkspace);
 router.get('/', workspaceController.getWorkspaces);
 router.get('/:workspaceId', requireWorkspaceMember('VIEWER'), workspaceController.getWorkspace);
+router.delete('/:workspaceId', requireWorkspaceMember('ADMIN'), workspaceController.deleteWorkspace);
 router.get('/:workspaceId/dashboard', requireWorkspaceMember('VIEWER'), dashboardController.getWorkspaceDashboard);
 
 // === MEMBERS ===

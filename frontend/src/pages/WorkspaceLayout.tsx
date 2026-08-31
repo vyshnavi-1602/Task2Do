@@ -56,6 +56,12 @@ export default function WorkspaceLayout() {
           >
             Members
           </Link>
+          <Link 
+            to={`/workspaces/${workspaceId}/settings`} 
+            style={{ ...styles.navLink, ...(location.pathname.includes('/settings') ? styles.activeNavLink : {}) }}
+          >
+            Settings
+          </Link>
         </nav>
 
         <div style={{ marginTop: 'auto' }}>
