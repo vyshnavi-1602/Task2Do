@@ -8,35 +8,37 @@ datasource db {
 }
 
 model User {
-  id             String            @id @default(uuid())
-  email          String            @unique
-  passwordHash   String
-  name           String
-  avatarUrl      String?
-  createdAt      DateTime          @default(now())
-  
+  id           String   @id @default(uuid())
+  googleId     String?  @unique
+  email        String   @unique
+  passwordHash String?
+  name         String
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+
   // Relations
   workspaceRoles WorkspaceMember[]
   reportedIssues Issue[]           @relation("IssueReporter")
   assignedIssues Issue[]           @relation("IssueAssignee")
   comments       Comment[]
   notifications  Notification[]
+  activities     IssueActivity[]
 }
 
 model Workspace {
-  id        String            @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  createdAt DateTime          @default(now())
-  
+  createdAt DateTime @default(now())
+
   // Relations
-  members   WorkspaceMember[]
-  projects  Project[]
+  members  WorkspaceMember[]
+  projects Project[]
 }
 
 model WorkspaceMember {
-  id          String    @id @default(uuid())
-  role        Role      @default(MEMBER)
-  
+  id   String @id @default(uuid())
+  role Role   @default(MEMBER)
+
   // Relations
   userId      String
   workspaceId String
@@ -49,11 +51,11 @@ model WorkspaceMember {
 }
 
 model Project {
-  id              String    @id @default(uuid())
+  id              String @id @default(uuid())
   name            String
-  key             String    // e.g., "ENG"
-  nextIssueNumber Int       @default(1)
-  
+  key             String // e.g., "ENG"
+  nextIssueNumber Int    @default(1)
+
   // Relations
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
@@ -70,78 +72,102 @@ model Sprint {
   startDate DateTime?
   endDate   DateTime?
   status    SprintStatus @default(PLANNED)
-  
+
   // Relations
   projectId String
-  project   Project      @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id])
   issues    Issue[]
 
   @@index([projectId])
 }
 
 model Issue {
-  id          String   @id @default(uuid())
-  key         String   @unique // e.g., "ENG-123"
+  id          String      @id @default(uuid())
+  key         String      // e.g., "ENG-123"
   title       String
   description String?
   status      IssueStatus @default(TO_DO)
-  priority    Priority @default(MEDIUM)
-  type        ItemType @default(TASK)
+  priority    Priority    @default(MEDIUM)
+  type        ItemType    @default(TASK)
   points      Int?
-  rank        Int      // For drag-and-drop ordering
-  version     Int      @default(1) // Optimistic concurrency control
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  rank        Int // For drag-and-drop ordering
+  version     Int         @default(1) // Optimistic concurrency control
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id])
-  sprintId    String?
-  sprint      Sprint?  @relation(fields: [sprintId], references: [id])
-  
-  reporterId  String
-  reporter    User     @relation("IssueReporter", fields: [reporterId], references: [id])
-  assigneeId  String?
-  assignee    User?    @relation("IssueAssignee", fields: [assigneeId], references: [id])
-  
-  comments    Comment[]
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+  sprintId  String?
+  sprint    Sprint? @relation(fields: [sprintId], references: [id])
+
+  reporterId String
+  reporter   User    @relation("IssueReporter", fields: [reporterId], references: [id])
+  assigneeId String?
+  assignee   User?   @relation("IssueAssignee", fields: [assigneeId], references: [id])
+
+  comments      Comment[]
+  activities    IssueActivity[]
+  notifications Notification[]
+
+  parentIssueId String?
+  parentIssue   Issue?   @relation("IssueSubtasks", fields: [parentIssueId], references: [id])
+  subtasks      Issue[]  @relation("IssueSubtasks")
+
+  epicId String?
+  epic   Issue?   @relation("IssueEpic", fields: [epicId], references: [id])
+  epicIssues Issue[] @relation("IssueEpic")
 
   @@index([projectId])
   @@index([sprintId])
   @@index([assigneeId])
   @@index([reporterId])
+  @@index([parentIssueId])
+  @@index([epicId])
+  @@unique([projectId, key])
 }
 
 model Comment {
   id        String   @id @default(uuid())
   text      String
   createdAt DateTime @default(now())
-  
+
   // Relations
-  issueId   String
-  issue     Issue    @relation(fields: [issueId], references: [id])
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  issueId  String
+  issue    Issue  @relation(fields: [issueId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 
   @@index([issueId])
   @@index([authorId])
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  message     String
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  
+  id        String           @id @default(uuid())
+  type      NotificationType
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
   // Relations
   recipientId String
-  recipient   User     @relation(fields: [recipientId], references: [id])
+  recipient   User   @relation(fields: [recipientId], references: [id])
+  
+  issueId     String?
+  issue       Issue? @relation(fields: [issueId], references: [id])
 
   @@index([recipientId])
+  @@index([issueId])
 }
 
 // Enums
+enum NotificationType {
+  ASSIGNED
+  MENTIONED
+  COMMENTED
+}
+
 enum Role {
   ADMIN
   MEMBER
@@ -166,10 +192,38 @@ enum ItemType {
   BUG
   STORY
   EPIC
+  SUB_TASK
 }
 
 enum IssueStatus {
   TO_DO
   IN_PROGRESS
   DONE
+}
+
+model IssueActivity {
+  id        String       @id @default(uuid())
+  type      ActivityType
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime     @default(now())
+
+  // Relations
+  issueId String
+  issue   Issue  @relation(fields: [issueId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@index([issueId])
+  @@index([userId])
+}
+
+enum ActivityType {
+  STATUS_CHANGE
+  ASSIGNEE_CHANGE
+  PRIORITY_CHANGE
+  SPRINT_CHANGE
+  TITLE_CHANGE
+  DESCRIPTION_CHANGE
+  POINTS_CHANGE
 }

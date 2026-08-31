@@ -15,12 +15,23 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Column } from '../components/board/Column';
 import { IssueCard } from '../components/board/IssueCard';
+import { IssueDetailsModal } from '../components/board/IssueDetailsModal';
 import { apiClient } from '../lib/apiClient';
+import { useProjectSocket } from '../hooks/useProjectSocket';
+import { BoardFilters } from '../components/board/BoardFilters';
+import { useAuth } from '../context/AuthContext';
 
 export default function BoardPage() {
   const { workspaceId, projectId } = useParams();
   const queryClient = useQueryClient();
   const [activeIssue, setActiveIssue] = useState<any | null>(null);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [onlyMyIssues, setOnlyMyIssues] = useState(false);
+  const { user } = useAuth();
+
+  useProjectSocket(projectId as string);
 
   // Fetch board state
   const { data: boardData, isLoading, error } = useQuery<any>({
@@ -157,29 +168,65 @@ export default function BoardPage() {
     { id: 'DONE', title: 'Done' },
   ];
 
+  const getFilteredIssues = (issues: any[]) => {
+    let filtered = issues || [];
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((i) => 
+        i.title.toLowerCase().includes(q) || 
+        i.key.toLowerCase().includes(q)
+      );
+    }
+    if (onlyMyIssues && user) {
+      filtered = filtered.filter((i) => i.assignee?.id === user.id);
+    }
+    return filtered;
+  };
+
   return (
-    <div className="board-container">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        {columnDefinitions.map((colDef) => (
-          <Column
-            key={colDef.id}
-            column={{
-              id: colDef.id,
-              title: colDef.title,
-              issues: columns[colDef.id] || [],
-            }}
-          />
-        ))}
-        
-        <DragOverlay>
-          {activeIssue ? <IssueCard issue={activeIssue} /> : null}
-        </DragOverlay>
-      </DndContext>
+    <div className="board-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <BoardFilters 
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onlyMyIssues={onlyMyIssues}
+        onOnlyMyIssuesChange={setOnlyMyIssues}
+      />
+      
+      <div className="board-container" style={{ flex: 1, padding: 0 }}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {columnDefinitions.map((colDef) => (
+            <Column
+              key={colDef.id}
+              column={{
+                id: colDef.id,
+                title: colDef.title,
+                issues: getFilteredIssues(columns[colDef.id]),
+              }}
+              onIssueClick={(issueId) => setSelectedIssueId(issueId)}
+            />
+          ))}
+          
+          <DragOverlay>
+            {activeIssue ? <IssueCard issue={activeIssue} /> : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+
+      {selectedIssueId && workspaceId && projectId && (
+        <IssueDetailsModal
+          issueId={selectedIssueId}
+          projectId={projectId}
+          workspaceId={workspaceId}
+          onClose={() => setSelectedIssueId(null)}
+          // User role should ideally come from boardData or AuthContext
+          userRole={boardData?.role || 'MEMBER'} // Pass derived role
+        />
+      )}
     </div>
   );
 }

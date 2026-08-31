@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma, Role } from '@task2do/schema';
+import { prisma, Prisma, Role } from '@task2do/schema';
 import { asyncHandler } from '../utils/async-handler';
 
 // Map roles to numeric values for hierarchy comparison
@@ -44,7 +44,7 @@ export const requireWorkspaceMember = (minimumRole: Role = 'VIEWER') => {
       });
     }
 
-    // Role Hierarchy Check
+    // Hierarchy Check
     // Example: If minimumRole is MEMBER (2), and member.role is VIEWER (1), it fails.
     // If minimumRole is VIEWER (1), and member.role is ADMIN (3), it passes.
     if (ROLE_HIERARCHY[member.role] < ROLE_HIERARCHY[minimumRole]) {
@@ -61,3 +61,4 @@ export const requireWorkspaceMember = (minimumRole: Role = 'VIEWER') => {
     next();
   });
 };
+// EOF

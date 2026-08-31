@@ -173,9 +173,9 @@ export const getBoard = asyncHandler(async (req: Request, res: Response) => {
 
   // Group issues by status
   const columns = {
-    TO_DO: issues.filter(issue => issue.status === 'TO_DO'),
-    IN_PROGRESS: issues.filter(issue => issue.status === 'IN_PROGRESS'),
-    DONE: issues.filter(issue => issue.status === 'DONE'),
+    TO_DO: issues.filter((issue: any) => issue.status === 'TO_DO'),
+    IN_PROGRESS: issues.filter((issue: any) => issue.status === 'IN_PROGRESS'),
+    DONE: issues.filter((issue: any) => issue.status === 'DONE'),
   };
 
   res.status(200).json({

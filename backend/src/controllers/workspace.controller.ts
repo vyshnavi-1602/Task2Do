@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma, Role } from '@task2do/schema';
+import { prisma, Prisma, Role } from '@task2do/schema';
 import { asyncHandler } from '../utils/async-handler';
 
 // === WORKSPACES ===
@@ -13,7 +13,7 @@ export const createWorkspace = asyncHandler(async (req: Request, res: Response) 
   }
 
   // Prisma Transaction: Create workspace AND assign current user as ADMIN
-  const workspace = await prisma.$transaction(async (tx) => {
+  const workspace = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const newWorkspace = await tx.workspace.create({
       data: { name },
     });
@@ -126,7 +126,7 @@ export const addMember = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json({ success: true, data: newMember });
 });
 
-export const updateMemberRole = asyncHandler(async (req: Request, res: Response) => {
+export const updateMember= asyncHandler(async (req: Request, res: Response) => {
   const { workspaceId, userId } = req.params;
   const { role } = req.body;
 

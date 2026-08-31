@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function RegisterPage() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -22,6 +23,17 @@ export default function RegisterPage() {
   const { mutate, isPending, error } = useMutation({
     mutationFn: async () => {
       const user = await apiClient.post('/auth/register', { name, email, password });
+      return user;
+    },
+    onSuccess: (user) => {
+      login(user as any);
+      navigate('/dashboard');
+    },
+  });
+
+  const googleLoginMutation = useMutation({
+    mutationFn: async (credential: string) => {
+      const user = await apiClient.post('/auth/google', { credential });
       return user;
     },
     onSuccess: (user) => {
@@ -151,9 +163,18 @@ export default function RegisterPage() {
                   <span style={currentStyles.dividerText}>or register with</span>
                 </div>
                 
-                <button type="button" style={currentStyles.googleButton} onClick={() => alert('Google auth not yet implemented')}>
-                  <span style={{ marginRight: '8px' }}>G</span> Register with Google
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <GoogleLogin 
+                    onSuccess={(credentialResponse) => {
+                      if (credentialResponse.credential) {
+                        googleLoginMutation.mutate(credentialResponse.credential);
+                      }
+                    }}
+                    onError={() => {
+                      console.log('Login Failed');
+                    }}
+                  />
+                </div>
               </div>
             </form>
 

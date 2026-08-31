@@ -3,6 +3,7 @@ import { requireAuth } from '../../middlewares/requireAuth';
 import { requireWorkspaceMember } from '../../middlewares/requireWorkspaceMember';
 import * as workspaceController from '../../controllers/workspace.controller';
 import * as projectController from '../../controllers/project.controller';
+import * as dashboardController from '../../controllers/dashboard.controller';
 import sprintRoutes from './sprint';
 import issueRoutes from './issue';
 
@@ -15,6 +16,7 @@ router.use(requireAuth);
 router.post('/', workspaceController.createWorkspace);
 router.get('/', workspaceController.getWorkspaces);
 router.get('/:workspaceId', requireWorkspaceMember('VIEWER'), workspaceController.getWorkspace);
+router.get('/:workspaceId/dashboard', requireWorkspaceMember('VIEWER'), dashboardController.getWorkspaceDashboard);
 
 // === MEMBERS ===
 // List members (VIEWER+)
@@ -22,7 +24,7 @@ router.get('/:workspaceId/members', requireWorkspaceMember('VIEWER'), workspaceC
 // Add member (ADMIN only)
 router.post('/:workspaceId/members', requireWorkspaceMember('ADMIN'), workspaceController.addMember);
 // Change role (ADMIN only)
-router.patch('/:workspaceId/members/:userId', requireWorkspaceMember('ADMIN'), workspaceController.updateMemberRole);
+router.patch('/:workspaceId/members/:userId', requireWorkspaceMember('ADMIN'), workspaceController.updateMember);
 // Remove member (ADMIN only)
 router.delete('/:workspaceId/members/:userId', requireWorkspaceMember('ADMIN'), workspaceController.removeMember);
 

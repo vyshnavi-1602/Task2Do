@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -21,6 +22,17 @@ export default function LoginPage() {
   const { mutate, isPending, error } = useMutation({
     mutationFn: async () => {
       const user = await apiClient.post('/auth/login', { email, password });
+      return user;
+    },
+    onSuccess: (user) => {
+      login(user as any);
+      navigate('/dashboard');
+    },
+  });
+
+  const googleLoginMutation = useMutation({
+    mutationFn: async (credential: string) => {
+      const user = await apiClient.post('/auth/google', { credential });
       return user;
     },
     onSuccess: (user) => {
@@ -95,7 +107,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} style={currentStyles.form}>
+            <form onSubmit={handleSubmit} style={currentStyles.form} autoComplete="off">
               <div style={currentStyles.inputGroup}>
                 <label style={currentStyles.label}>Email</label>
                 <div style={currentStyles.inputWrapper}>
@@ -107,6 +119,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)} 
                     style={currentStyles.input} 
                     required 
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -125,6 +138,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)} 
                     style={currentStyles.input} 
                     required 
+                    autoComplete="new-password"
                   />
                 </div>
               </div>
@@ -138,9 +152,18 @@ export default function LoginPage() {
                   <span style={currentStyles.dividerText}>or continue with</span>
                 </div>
                 
-                <button type="button" style={currentStyles.googleButton} onClick={() => alert('Google auth not yet implemented')}>
-                  <span style={{ marginRight: '8px' }}>G</span> Continue with Google
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <GoogleLogin 
+                    onSuccess={(credentialResponse) => {
+                      if (credentialResponse.credential) {
+                        googleLoginMutation.mutate(credentialResponse.credential);
+                      }
+                    }}
+                    onError={() => {
+                      console.log('Login Failed');
+                    }}
+                  />
+                </div>
               </div>
             </form>
 

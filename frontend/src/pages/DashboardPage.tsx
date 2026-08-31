@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
+import { NotificationBell } from '../components/notifications/NotificationBell';
 
 interface Workspace {
   id: string;
@@ -81,6 +82,7 @@ export default function DashboardPage() {
         </div>
         
         <div style={currentStyles.navActions}>
+          <NotificationBell />
           <div style={currentStyles.userGreeting}>
             <div style={currentStyles.avatar}>{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
             {!isMobile && <span>{user?.name}</span>}

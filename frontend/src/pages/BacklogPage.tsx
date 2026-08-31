@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { IssueDetailsModal } from '../components/board/IssueDetailsModal';
 
 export default function BacklogPage() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
@@ -10,6 +11,7 @@ export default function BacklogPage() {
 
   const [newIssueTitle, setNewIssueTitle] = useState('');
   const [newSprintName, setNewSprintName] = useState('');
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
   // Queries
   const { data: sprints, isLoading: sprintsLoading } = useQuery({
@@ -71,7 +73,7 @@ export default function BacklogPage() {
   if (sprintsLoading || backlogLoading) return <div style={{ padding: '2rem' }}><LoadingSpinner /></div>;
 
   const renderIssue = (issue: any) => (
-    <div key={issue.id} style={styles.issueRow}>
+    <div key={issue.id} style={styles.issueRow} onClick={() => setSelectedIssueId(issue.id)}>
       <div style={styles.issueKey}>{issue.key}</div>
       <div style={styles.issueTitle}>{issue.title}</div>
       <div style={styles.issueMeta}>
@@ -79,6 +81,7 @@ export default function BacklogPage() {
         <select 
           value={issue.sprintId || ''} 
           onChange={(e) => updateIssueSprint.mutate({ issueId: issue.id, sprintId: e.target.value || null })}
+          onClick={(e) => e.stopPropagation()}
           style={styles.sprintSelect}
         >
           <option value="">Backlog</option>
@@ -171,6 +174,16 @@ export default function BacklogPage() {
           </div>
         </div>
       </div>
+
+      {selectedIssueId && workspaceId && projectId && (
+        <IssueDetailsModal
+          issueId={selectedIssueId}
+          projectId={projectId}
+          workspaceId={workspaceId}
+          onClose={() => setSelectedIssueId(null)}
+          userRole="MEMBER"
+        />
+      )}
     </div>
   );
 }
@@ -237,6 +250,7 @@ const styles: Record<string, any> = {
     borderBottom: '1px solid var(--border-color)',
     gap: 'var(--space-4)',
     transition: 'background-color 0.2s',
+    cursor: 'pointer',
   },
   issueKey: {
     fontSize: '0.875rem',

@@ -1,19 +1,41 @@
 import { Request, Response } from 'express';
-import { prisma, Priority, ItemType } from '@task2do/schema';
+import { prisma, Priority, ItemType, Prisma } from '@task2do/schema';
 import { asyncHandler } from '../utils/async-handler';
+import { getIO } from '../socket';
 
 export const createIssue = asyncHandler(async (req: Request, res: Response) => {
   const { projectId } = req.params;
-  const { title, description, priority, type, points } = req.body;
+  const { title, description, priority, type, points, parentIssueId, epicId } = req.body;
   const reporterId = req.user!.id;
 
   if (!title) {
     return res.status(400).json({ success: false, error: { message: 'Title is required' } });
   }
 
+  // VALIDATE EPIC
+  if (epicId) {
+    const epic = await prisma.issue.findUnique({ where: { id: epicId, projectId } });
+    if (!epic || epic.type !== 'EPIC') {
+      return res.status(400).json({ success: false, error: { message: 'Invalid Epic' } });
+    }
+  }
+
+  // VALIDATE SUB-TASK
+  if (type === 'SUB_TASK') {
+    if (!parentIssueId) {
+      return res.status(400).json({ success: false, error: { message: 'parentIssueId is required for sub-tasks' } });
+    }
+    const parent = await prisma.issue.findUnique({ where: { id: parentIssueId, projectId } });
+    if (!parent || parent.type === 'SUB_TASK') {
+      return res.status(400).json({ success: false, error: { message: 'Invalid parent issue' } });
+    }
+  } else if (parentIssueId) {
+    return res.status(400).json({ success: false, error: { message: 'parentIssueId can only be set for SUB_TASK' } });
+  }
+
   // Atomic Issue Creation using Prisma Transaction
   // We need to increment the project's nextIssueNumber and create the issue safely.
-  const issue = await prisma.$transaction(async (tx) => {
+  const issue = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // 1. Atomically increment the project issue number and get the updated project
     const project = await tx.project.update({
       where: { id: projectId },
@@ -44,9 +66,13 @@ export const createIssue = asyncHandler(async (req: Request, res: Response) => {
         rank: newRank,
         projectId,
         reporterId,
+        parentIssueId,
+        epicId,
       },
     });
   });
+
+  getIO().to(`project:${projectId}`).emit('issue:created', issue);
 
   res.status(201).json({ success: true, data: issue });
 });
@@ -67,6 +93,8 @@ export const getIssues = asyncHandler(async (req: Request, res: Response) => {
     where: whereClause,
     include: {
       assignee: { select: { id: true, name: true, avatarUrl: true } },
+      epic: { select: { id: true, key: true, title: true } },
+      subtasks: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
     },
     orderBy: { rank: 'asc' },
   });
@@ -82,6 +110,10 @@ export const getIssue = asyncHandler(async (req: Request, res: Response) => {
     include: {
       assignee: { select: { id: true, name: true, avatarUrl: true } },
       reporter: { select: { id: true, name: true, avatarUrl: true } },
+      epic: { select: { id: true, key: true, title: true } },
+      parentIssue: { select: { id: true, key: true, title: true } },
+      subtasks: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
+      epicIssues: { select: { id: true, status: true } },
     },
   });
 
@@ -94,7 +126,8 @@ export const getIssue = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
   const { projectId, issueId } = req.params;
-  const { title, description, status, priority, type, points, assigneeId, sprintId, rank } = req.body;
+  const { title, description, status, priority, type, points, assigneeId, sprintId, rank, parentIssueId, epicId } = req.body;
+  const userId = req.user!.id;
 
   const issue = await prisma.issue.findUnique({
     where: { id: issueId, projectId },
@@ -135,8 +168,35 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
+  // EPIC & SUB_TASK VALIDATION
+  if (epicId !== undefined && epicId !== null && epicId !== issue.epicId) {
+    const epic = await prisma.issue.findUnique({ where: { id: epicId, projectId } });
+    if (!epic || epic.type !== 'EPIC') {
+      return res.status(400).json({ success: false, error: { message: 'Invalid Epic' } });
+    }
+  }
+
+  const effectiveType = type || issue.type;
+  if (effectiveType === 'SUB_TASK') {
+    const newParentId = parentIssueId !== undefined ? parentIssueId : issue.parentIssueId;
+    if (!newParentId) {
+      return res.status(400).json({ success: false, error: { message: 'parentIssueId is required for sub-tasks' } });
+    }
+    if (newParentId === issue.id) {
+      return res.status(400).json({ success: false, error: { message: 'Issue cannot be its own parent' } });
+    }
+    if (newParentId !== issue.parentIssueId) {
+      const parent = await prisma.issue.findUnique({ where: { id: newParentId, projectId } });
+      if (!parent || parent.type === 'SUB_TASK') {
+        return res.status(400).json({ success: false, error: { message: 'Invalid parent issue' } });
+      }
+    }
+  } else if (parentIssueId && parentIssueId !== issue.parentIssueId) {
+    return res.status(400).json({ success: false, error: { message: 'parentIssueId can only be set for SUB_TASK' } });
+  }
+
   // If rank or status is changing, we use a transaction to safely update and shift surrounding issues
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const oldStatus = issue.status;
     const newStatus = status || oldStatus;
     const oldRank = issue.rank;
@@ -188,6 +248,48 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
       }
     }
 
+    // ACTIVITY LOGGING
+    const activities = [];
+
+    if (status && oldStatus !== status) {
+      activities.push({ type: 'STATUS_CHANGE', oldValue: oldStatus, newValue: status, issueId, userId });
+    }
+    if (assigneeId !== undefined && issue.assigneeId !== assigneeId) {
+      activities.push({ type: 'ASSIGNEE_CHANGE', oldValue: issue.assigneeId || 'Unassigned', newValue: assigneeId || 'Unassigned', issueId, userId });
+    }
+    if (priority && issue.priority !== priority) {
+      activities.push({ type: 'PRIORITY_CHANGE', oldValue: issue.priority, newValue: priority, issueId, userId });
+    }
+    if (sprintId !== undefined && issue.sprintId !== sprintId) {
+      activities.push({ type: 'SPRINT_CHANGE', oldValue: issue.sprintId || 'Backlog', newValue: sprintId || 'Backlog', issueId, userId });
+    }
+    if (title && issue.title !== title) {
+      activities.push({ type: 'TITLE_CHANGE', oldValue: issue.title, newValue: title, issueId, userId });
+    }
+    if (description !== undefined && issue.description !== description) {
+      activities.push({ type: 'DESCRIPTION_CHANGE', oldValue: null, newValue: null, issueId, userId }); // Too long to store full text, just log the change
+    }
+    const newPoints = points !== undefined ? (points ? parseInt(points) : null) : issue.points;
+    if (points !== undefined && issue.points !== newPoints) {
+      activities.push({ type: 'POINTS_CHANGE', oldValue: issue.points ? issue.points.toString() : 'None', newValue: newPoints ? newPoints.toString() : 'None', issueId, userId });
+    }
+
+    if (activities.length > 0) {
+      await tx.issueActivity.createMany({ data: activities as any });
+    }
+
+    // NOTIFICATIONS
+    if (assigneeId !== undefined && issue.assigneeId !== assigneeId && assigneeId !== userId && assigneeId !== null) {
+      await tx.notification.create({
+        data: {
+          type: 'ASSIGNED',
+          message: `You have been assigned to this issue.`,
+          recipientId: assigneeId,
+          issueId,
+        }
+      });
+    }
+
     // Finally update the issue itself
     return await tx.issue.update({
       where: { id: issueId },
@@ -197,17 +299,23 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
         ...(status && { status: status as any }),
         ...(priority && { priority: priority as any }),
         ...(type && { type: type as any }),
-        ...(points !== undefined && { points: points ? parseInt(points) : null }),
+        ...(points !== undefined && { points: newPoints }),
         ...(assigneeId !== undefined && { assigneeId }),
         ...(sprintId !== undefined && { sprintId }),
         ...(newRank !== undefined && { rank: parseInt(newRank) }),
+        ...(parentIssueId !== undefined && { parentIssueId }),
+        ...(epicId !== undefined && { epicId }),
         version: { increment: 1 },
       },
       include: {
         assignee: { select: { id: true, name: true, avatarUrl: true } },
+        epic: { select: { id: true, key: true, title: true } },
+        subtasks: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
       }
     });
   });
+
+  getIO().to(`project:${projectId}`).emit('issue:updated', updated);
 
   res.status(200).json({ success: true, data: updated });
 });
@@ -226,6 +334,8 @@ export const deleteIssue = asyncHandler(async (req: Request, res: Response) => {
   await prisma.issue.delete({
     where: { id: issueId },
   });
+
+  getIO().to(`project:${projectId}`).emit('issue:deleted', { id: issueId, projectId });
 
   res.status(200).json({ success: true, data: { message: 'Issue deleted' } });
 });

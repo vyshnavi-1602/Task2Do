@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma, SprintStatus } from '@task2do/schema';
+import { prisma, Prisma, SprintStatus } from '@task2do/schema';
 import { asyncHandler } from '../utils/async-handler';
 
 export const createSprint = asyncHandler(async (req: Request, res: Response) => {
@@ -66,7 +66,7 @@ export const updateSprint = asyncHandler(async (req: Request, res: Response) => 
       CLOSED: [], // Cannot transition out of CLOSED
     };
 
-    if (!validTransitions[sprint.status].includes(status as SprintStatus)) {
+    if (!validTransitions[sprint.status as SprintStatus].includes(status as SprintStatus)) {
       return res.status(400).json({
         success: false,
         error: { message: `Invalid status transition from ${sprint.status} to ${status}` },

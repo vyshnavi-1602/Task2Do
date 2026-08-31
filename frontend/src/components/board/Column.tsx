@@ -9,9 +9,10 @@ interface ColumnProps {
     title: string;
     issues: any[];
   };
+  onIssueClick?: (issueId: string) => void;
 }
 
-export function Column({ column }: ColumnProps) {
+export function Column({ column, onIssueClick }: ColumnProps) {
   const issueIds = useMemo(() => column.issues.map((i) => i.id), [column.issues]);
 
   const { setNodeRef } = useDroppable({
@@ -32,7 +33,7 @@ export function Column({ column }: ColumnProps) {
       <div className="board-column-body" ref={setNodeRef}>
         <SortableContext items={issueIds} strategy={verticalListSortingStrategy}>
           {column.issues.map((issue) => (
-            <IssueCard key={issue.id} issue={issue} />
+            <IssueCard key={issue.id} issue={issue} onClick={onIssueClick} />
           ))}
         </SortableContext>
       </div>

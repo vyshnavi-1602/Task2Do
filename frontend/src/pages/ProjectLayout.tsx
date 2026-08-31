@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Menu, X } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { NotificationBell } from '../components/notifications/NotificationBell';
 
 export default function ProjectLayout() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
@@ -90,8 +91,13 @@ export default function ProjectLayout() {
         </div>
       </aside>
 
-      <main style={currentStyles.main}>
-        <Outlet context={{ project }} />
+      <main style={{ ...currentStyles.main, display: 'flex', flexDirection: 'column', padding: 0 }}>
+        <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#fff', minHeight: '60px' }}>
+          <NotificationBell />
+        </header>
+        <div style={{ flex: 1, overflow: 'auto', padding: isBoard ? (isMobile ? '8px' : '24px') : (isMobile ? '16px' : '32px') }}>
+          <Outlet context={{ project }} />
+        </div>
       </main>
     </div>
   );

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Task2Do Agile Project Management Tool",
   "scripts": {
-    "dev": "pnpm -r run dev",
+    "dev": "pnpm --parallel -r run dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",

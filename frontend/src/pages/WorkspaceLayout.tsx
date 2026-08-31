@@ -25,6 +25,7 @@ export default function WorkspaceLayout() {
     return <div style={styles.center}>Workspace not found or access denied.</div>;
   }
 
+  const isDashboard = location.pathname.includes('/dashboard');
   const isProjects = location.pathname.includes('/projects');
   const isMembers = location.pathname.includes('/members');
 
@@ -37,6 +38,12 @@ export default function WorkspaceLayout() {
         </div>
         
         <nav style={styles.nav}>
+          <Link 
+            to={`/workspaces/${workspaceId}/dashboard`} 
+            style={{ ...styles.navLink, ...(isDashboard ? styles.activeNavLink : {}) }}
+          >
+            Dashboard
+          </Link>
           <Link 
             to={`/workspaces/${workspaceId}/projects`} 
             style={{ ...styles.navLink, ...(isProjects ? styles.activeNavLink : {}) }}
