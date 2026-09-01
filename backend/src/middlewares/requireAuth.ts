@@ -34,3 +34,19 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
     });
   }
 };
+
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies.task2do_token;
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET as string) as { id: string };
+    req.user = payload;
+  } catch (error) {
+    // Ignore invalid tokens for optional auth
+  }
+  next();
+};

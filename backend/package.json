@@ -11,6 +11,7 @@
     "test": "echo 'Backend testing...'"
   },
   "dependencies": {
+    "@google/genai": "^2.20.0",
     "@task2do/schema": "workspace:*",
     "axios": "^1.6.8",
     "bcryptjs": "^3.0.3",

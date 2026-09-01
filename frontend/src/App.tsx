@@ -14,6 +14,7 @@ import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProjectLayout from './pages/ProjectLayout';
 import BacklogPage from './pages/BacklogPage';
 import BoardPage from './pages/BoardPage';
+import { ChatWidget } from './components/chat/ChatWidget';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
@@ -78,6 +79,7 @@ function App() {
                 <Route path="board" element={<BoardPage />} />
               </Route>
             </Routes>
+            <ChatWidget />
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>
