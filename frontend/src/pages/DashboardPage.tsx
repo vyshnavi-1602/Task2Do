@@ -19,9 +19,25 @@ export default function DashboardPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   
+  const [activeTab, setActiveTab] = useState<'workspaces' | 'settings'>('workspaces');
+  
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [theme] = useState<'light' | 'dark'>(() => {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as any) || 'light';
+  });
+  
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  const { data: activities, isLoading: activitiesLoading } = useQuery({
+    queryKey: ['activities'],
+    queryFn: async () => {
+      const data = await apiClient.get('/activities');
+      return data as unknown as any[];
+    },
   });
 
   useEffect(() => {
@@ -96,103 +112,169 @@ export default function DashboardPage() {
         
         {/* Sidebar */}
         <aside style={currentStyles.sidebar}>
-          <div style={currentStyles.sidebarItemActive}>
+          <div 
+            style={activeTab === 'workspaces' ? currentStyles.sidebarItemActive : currentStyles.sidebarItem}
+            onClick={() => setActiveTab('workspaces')}
+          >
             <span style={{marginRight: '8px'}}>📁</span> Workspaces
           </div>
-          <div style={currentStyles.sidebarItem}>
+          <div 
+            style={activeTab === 'settings' ? currentStyles.sidebarItemActive : currentStyles.sidebarItem}
+            onClick={() => setActiveTab('settings')}
+          >
             <span style={{marginRight: '8px'}}>⚙️</span> Settings
           </div>
         </aside>
 
         {/* Content Area */}
         <main style={currentStyles.content}>
-          <div style={currentStyles.contentHeader}>
-            <h2 style={currentStyles.pageTitle}>Your Workspaces</h2>
-            {!isCreating && (
-              <button 
-                style={currentStyles.primaryButton}
-                onClick={() => setIsCreating(true)}
-              >
-                + New Workspace
-              </button>
-            )}
-          </div>
-
-          {error && <div style={currentStyles.errorAlert}>Failed to load workspaces.</div>}
-
-          {isCreating && (
-            <div style={currentStyles.createCard}>
-              <h3 style={currentStyles.createCardTitle}>Create a new workspace</h3>
-              <form onSubmit={handleCreate} style={currentStyles.createForm}>
-                <input
-                  type="text"
-                  placeholder="Workspace Name (e.g., Acme Corp)"
-                  value={newWorkspaceName}
-                  onChange={(e) => setNewWorkspaceName(e.target.value)}
-                  style={currentStyles.input}
-                  autoFocus
-                  required
-                />
-                <div style={currentStyles.formActions}>
-                  <button type="button" onClick={() => setIsCreating(false)} style={currentStyles.secondaryButton}>
-                    Cancel
+          {activeTab === 'workspaces' ? (
+            <>
+              <div style={currentStyles.contentHeader}>
+                <h2 style={currentStyles.pageTitle}>Your Workspaces</h2>
+                {!isCreating && (
+                  <button 
+                    style={currentStyles.primaryButton}
+                    onClick={() => setIsCreating(true)}
+                  >
+                    + New Workspace
                   </button>
-                  <button type="submit" disabled={createMutation.isPending} style={currentStyles.primaryButton}>
-                    {createMutation.isPending ? 'Creating...' : 'Create'}
+                )}
+              </div>
+
+              {error && <div style={currentStyles.errorAlert}>Failed to load workspaces.</div>}
+
+              {isCreating && (
+                <div style={currentStyles.createCard}>
+                  <h3 style={currentStyles.createCardTitle}>Create a new workspace</h3>
+                  <form onSubmit={handleCreate} style={currentStyles.createForm}>
+                    <input
+                      type="text"
+                      placeholder="Workspace Name (e.g., Acme Corp)"
+                      value={newWorkspaceName}
+                      onChange={(e) => setNewWorkspaceName(e.target.value)}
+                      style={currentStyles.input}
+                      autoFocus
+                      required
+                    />
+                    <div style={currentStyles.formActions}>
+                      <button type="button" onClick={() => setIsCreating(false)} style={currentStyles.secondaryButton}>
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={createMutation.isPending} style={currentStyles.primaryButton}>
+                        {createMutation.isPending ? 'Creating...' : 'Create'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              <div style={currentStyles.grid}>
+                {workspaces?.map((workspace) => (
+                  <div 
+                    key={workspace.id} 
+                    style={currentStyles.card}
+                    onClick={() => navigate(`/workspaces/${workspace.id}/projects`)}
+                  >
+                    <div style={currentStyles.cardHeader}>
+                      <h4 style={currentStyles.cardTitle}>{workspace.name}</h4>
+                      <span style={currentStyles.statusTag}>Active</span>
+                    </div>
+                    <p style={currentStyles.cardDesc}>Manage projects and team members in this workspace.</p>
+                    <div style={currentStyles.cardFooter}>
+                      <div style={currentStyles.metaInfo}>
+                        <span>{workspace._count?.projects || 0} Projects</span>
+                        <span>•</span>
+                        <span>{workspace._count?.members || 0} Members</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {workspaces?.length === 0 && !isCreating && (
+                  <div style={currentStyles.emptyState}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>👋</div>
+                    <h3 style={currentStyles.emptyTitle}>Welcome to Task2Do!</h3>
+                    <p style={currentStyles.emptyDesc}>You don't belong to any workspaces yet. Create one to get started.</p>
+                    <button 
+                      style={currentStyles.primaryButton}
+                      onClick={() => setIsCreating(true)}
+                    >
+                      Create your first workspace
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Activity Section */}
+              <div style={currentStyles.activitySection}>
+                <h3 style={currentStyles.sectionTitle}>Recent Activity</h3>
+                <div style={currentStyles.activityList}>
+                  {activitiesLoading ? (
+                    <div style={{ padding: '1rem', textAlign: 'center' }}><LoadingSpinner /></div>
+                  ) : activities?.length === 0 ? (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No recent activity to show.</div>
+                  ) : (
+                    activities?.map((activity: any) => {
+                      const timeString = new Date(activity.createdAt).toLocaleString(undefined, {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                      });
+                      
+                      let actionText = 'updated';
+                      if (activity.type === 'STATUS_CHANGE') actionText = `changed status to ${activity.newValue}`;
+                      else if (activity.type === 'ASSIGNEE_CHANGE') actionText = `reassigned`;
+                      else if (activity.type === 'PRIORITY_CHANGE') actionText = `changed priority to ${activity.newValue}`;
+                      
+                      return (
+                        <div key={activity.id} style={currentStyles.activityItem}>
+                          {activity.user.avatarUrl ? (
+                            <img src={activity.user.avatarUrl} alt={activity.user.name} style={currentStyles.avatarSmall} />
+                          ) : (
+                            <div style={{...currentStyles.avatarSmall, backgroundColor: 'var(--accent-color)'}}>
+                              {activity.user.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <p style={currentStyles.activityText}>
+                            <strong>{activity.user.name}</strong> {actionText} 
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', marginLeft: '4px' }}>
+                              {activity.issue.key} - {activity.issue.title}
+                            </span>
+                          </p>
+                          <span style={currentStyles.activityTime}>{timeString}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={currentStyles.settingsContainer}>
+              <h2 style={currentStyles.pageTitle}>Account Settings</h2>
+              <div style={{...currentStyles.card, marginTop: '2rem', cursor: 'default'}}>
+                <h3 style={currentStyles.cardTitle}>Appearance</h3>
+                <p style={{...currentStyles.cardDesc, marginTop: '0.5rem'}}>
+                  Customize how Task2Do looks on your device.
+                </p>
+                <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <button 
+                    onClick={toggleTheme}
+                    style={currentStyles.primaryButton}
+                  >
+                    Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
                   </button>
                 </div>
-              </form>
+              </div>
+              
+              <div style={{...currentStyles.card, marginTop: '1.5rem', cursor: 'default'}}>
+                <h3 style={currentStyles.cardTitle}>Profile Profile</h3>
+                <p style={{...currentStyles.cardDesc, marginTop: '0.5rem'}}>
+                  Name: {user?.name} <br/>
+                  Email: {user?.email}
+                </p>
+              </div>
             </div>
           )}
-
-          <div style={currentStyles.grid}>
-            {workspaces?.map((workspace) => (
-              <div 
-                key={workspace.id} 
-                style={currentStyles.card}
-                onClick={() => navigate(`/workspaces/${workspace.id}/projects`)}
-              >
-                <div style={currentStyles.cardHeader}>
-                  <h4 style={currentStyles.cardTitle}>{workspace.name}</h4>
-                  <span style={currentStyles.statusTag}>Active</span>
-                </div>
-                <p style={currentStyles.cardDesc}>Manage projects and team members in this workspace.</p>
-                <div style={currentStyles.cardFooter}>
-                  <div style={currentStyles.metaInfo}>
-                    <span>{workspace._count?.projects || 0} Projects</span>
-                    <span>•</span>
-                    <span>{workspace._count?.members || 0} Members</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {workspaces?.length === 0 && !isCreating && (
-              <div style={currentStyles.emptyState}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>👋</div>
-                <h3 style={currentStyles.emptyTitle}>Welcome to Task2Do!</h3>
-                <p style={currentStyles.emptyDesc}>You don't belong to any workspaces yet. Create one to get started.</p>
-                <button 
-                  style={currentStyles.primaryButton}
-                  onClick={() => setIsCreating(true)}
-                >
-                  Create your first workspace
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Dummy Recent Activity Section to match Hero Mockup styling */}
-          <div style={currentStyles.activitySection}>
-            <h3 style={currentStyles.sectionTitle}>Recent Activity</h3>
-            <div style={currentStyles.activityList}>
-              <div style={currentStyles.activityItem}>
-                <div style={{...currentStyles.avatarSmall, backgroundColor: '#3b82f6'}}>SY</div>
-                <p style={currentStyles.activityText}><strong>System</strong> initialized your account.</p>
-                <span style={currentStyles.activityTime}>Just now</span>
-              </div>
-            </div>
-          </div>
         </main>
       </div>
     </div>
@@ -323,6 +405,11 @@ const getStyles = (isDark: boolean, isMobile: boolean): Record<string, React.CSS
       overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
+    },
+    settingsContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      maxWidth: '800px',
     },
     contentHeader: {
       display: 'flex',
@@ -498,6 +585,8 @@ const getStyles = (isDark: boolean, isMobile: boolean): Record<string, React.CSS
       display: 'flex',
       flexDirection: 'column',
       gap: '1rem',
+      maxHeight: '350px',
+      overflowY: 'auto',
     },
     activityItem: {
       display: 'flex',
