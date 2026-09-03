@@ -1,20 +1,20 @@
 import { Request, Response } from 'express';
 import { prisma } from '@task2do/schema';
 import { asyncHandler } from '../utils/async-handler';
-import { AppError } from '../middlewares/error.middleware';
+
 
 export const uploadAttachment = asyncHandler(async (req: Request, res: Response) => {
   const { issueId } = req.body;
   const userId = req.user?.id;
 
   if (!req.file) {
-    throw new AppError('No file uploaded', 400);
+    return res.status(400).json({ success: false, error: { message: 'No file uploaded' } });
   }
   if (!issueId) {
-    throw new AppError('issueId is required', 400);
+    return res.status(400).json({ success: false, error: { message: 'issueId is required' } });
   }
   if (!userId) {
-    throw new AppError('Unauthorized', 401);
+    return res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
   }
 
   const { originalname, filename, mimetype, size } = req.file;
@@ -42,12 +42,12 @@ export const deleteAttachment = asyncHandler(async (req: Request, res: Response)
   const userId = req.user?.id;
 
   if (!userId) {
-    throw new AppError('Unauthorized', 401);
+    return res.status(401).json({ success: false, error: { message: 'Unauthorized' } });
   }
 
   const attachment = await prisma.attachment.findUnique({ where: { id } });
   if (!attachment) {
-    throw new AppError('Attachment not found', 404);
+    return res.status(404).json({ success: false, error: { message: 'Attachment not found' } });
   }
 
   await prisma.attachment.delete({ where: { id } });
