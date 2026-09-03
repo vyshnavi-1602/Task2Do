@@ -8,5 +8,6 @@ const router = Router();
 router.use(optionalAuth);
 
 router.post('/chat', aiController.chatWithAI);
+router.post('/summarize-issue', aiController.summarizeIssue);
 
 export default router;

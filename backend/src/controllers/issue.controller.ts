@@ -114,6 +114,7 @@ export const getIssue = asyncHandler(async (req: Request, res: Response) => {
       parentIssue: { select: { id: true, key: true, title: true } },
       subtasks: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
       epicIssues: { select: { id: true, status: true } },
+      attachments: true,
     },
   });
 

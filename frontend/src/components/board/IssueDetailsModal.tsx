@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ActivityFeed } from './ActivityFeed';
 import { CommentSection } from './CommentSection';
 import { MentionTextarea } from './MentionTextarea';
+import MDEditor from '@uiw/react-md-editor';
 
 interface IssueDetailsModalProps {
   issueId: string;
@@ -20,6 +21,13 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
   const [commentText, setCommentText] = useState('');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
+
+  // New States for Day 4 features
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [descText, setDescText] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Handle ESC key to close
   useEffect(() => {
@@ -110,7 +118,7 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
   });
 
   const updateIssueMutation = useMutation({
-    mutationFn: (updates: { assigneeId?: string | null }) => 
+    mutationFn: (updates: any) => 
       apiClient.patch(`/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}`, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['issue', projectId, issueId] });
@@ -152,10 +160,112 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
         <div className="modal-body">
           <div className="modal-content-left">
             <div className="issue-description" style={{ marginBottom: '32px' }}>
-              <h3 className="sidebar-label">Description</h3>
-              <p style={{ whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>
-                {issue.description || 'No description provided.'}
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="sidebar-label" style={{ marginBottom: 0 }}>Description</h3>
+                {userRole !== 'VIEWER' && !isEditingDesc && (
+                  <button onClick={() => { setDescText(issue.description || ''); setIsEditingDesc(true); }} className="secondary-button" style={{ fontSize: '12px', padding: '4px 8px' }}>Edit</button>
+                )}
+              </div>
+              
+              {isEditingDesc ? (
+                <div data-color-mode="dark" style={{ marginTop: '12px' }}>
+                  <MDEditor
+                    value={descText}
+                    onChange={(val) => setDescText(val || '')}
+                  />
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                    <button onClick={() => {
+                      updateIssueMutation.mutate({ description: descText });
+                      setIsEditingDesc(false);
+                    }} className="primary-button" disabled={updateIssueMutation.isPending}>Save</button>
+                    <button onClick={() => setIsEditingDesc(false)} className="secondary-button">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div data-color-mode="dark" style={{ marginTop: '12px' }}>
+                  <MDEditor.Markdown source={issue.description || 'No description provided.'} />
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '32px' }}>
+              <h3 className="sidebar-label">Attachments</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                {issue.attachments?.map((att: any) => (
+                  <div key={att.id} style={{ border: '1px solid var(--border-color)', borderRadius: '4px', padding: '8px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--bg-color)' }}>
+                    <a href={`http://localhost:3000${att.url}`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontSize: '14px' }}>
+                      📎 {att.filename}
+                    </a>
+                    {userRole !== 'VIEWER' && (
+                      <button onClick={async () => {
+                        if (confirm('Delete attachment?')) {
+                          await apiClient.delete(`/attachments/${att.id}`);
+                          queryClient.invalidateQueries({ queryKey: ['issue', projectId, issueId] });
+                        }
+                      }} style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}>&times;</button>
+                    )}
+                  </div>
+                ))}
+                {(!issue.attachments || issue.attachments.length === 0) && (
+                  <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>No attachments</span>
+                )}
+              </div>
+              {userRole !== 'VIEWER' && (
+                <div>
+                  <input type="file" id="file-upload" style={{ display: 'none' }} onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setIsUploading(true);
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      formData.append('issueId', issueId);
+                      try {
+                        await apiClient.post('/attachments', formData, {
+                          headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['issue', projectId, issueId] });
+                      } catch (err) {
+                        console.error('Upload failed', err);
+                        alert('Upload failed');
+                      } finally {
+                        setIsUploading(false);
+                      }
+                    }
+                  }} />
+                  <label htmlFor="file-upload" className="secondary-button" style={{ cursor: 'pointer', display: 'inline-block', fontSize: '12px', padding: '4px 8px' }}>
+                    {isUploading ? 'Uploading...' : 'Upload File'}
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h3 className="sidebar-label" style={{ marginBottom: 0 }}>AI Summary</h3>
+                <button 
+                  onClick={async () => {
+                    setIsSummarizing(true);
+                    try {
+                      const res = await apiClient.post('/ai/summarize-issue', { issueId, projectId });
+                      setAiSummary(res.data.data.summary);
+                    } catch (err) {
+                      alert('Failed to summarize issue');
+                    } finally {
+                      setIsSummarizing(false);
+                    }
+                  }}
+                  className="secondary-button"
+                  style={{ fontSize: '12px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  disabled={isSummarizing}
+                >
+                  ✨ {isSummarizing ? 'Summarizing...' : 'Summarize Thread'}
+                </button>
+              </div>
+              {aiSummary && (
+                <div data-color-mode="dark" style={{ marginTop: '12px', padding: '16px', backgroundColor: 'rgba(101, 84, 192, 0.1)', borderLeft: '4px solid #6554c0', borderRadius: '4px' }}>
+                  <MDEditor.Markdown source={aiSummary} style={{ backgroundColor: 'transparent' }} />
+                </div>
+              )}
             </div>
 
             {issue.type === 'EPIC' && issue.epicIssues && (

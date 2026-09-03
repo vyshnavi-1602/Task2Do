@@ -3,6 +3,7 @@ import { Outlet, useParams, Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { useAuth } from '../context/AuthContext';
 
 export default function WorkspaceLayout() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -16,6 +17,19 @@ export default function WorkspaceLayout() {
     },
     enabled: !!workspaceId,
   });
+
+  const { user } = useAuth();
+  const { data: members } = useQuery({
+    queryKey: ['workspace-members', workspaceId],
+    queryFn: async () => {
+      const data = await apiClient.get(`/workspaces/${workspaceId}/members`);
+      return data as unknown as any[];
+    },
+    enabled: !!workspaceId,
+  });
+
+  const myMemberInfo = members?.find((m: any) => m.user.id === user?.id);
+  const isAdmin = myMemberInfo?.role === 'ADMIN';
 
   if (isLoading) {
     return <div style={styles.center}><LoadingSpinner /></div>;
@@ -56,12 +70,14 @@ export default function WorkspaceLayout() {
           >
             Members
           </Link>
-          <Link 
-            to={`/workspaces/${workspaceId}/settings`} 
-            style={{ ...styles.navLink, ...(location.pathname.includes('/settings') ? styles.activeNavLink : {}) }}
-          >
-            Settings
-          </Link>
+          {isAdmin && (
+            <Link 
+              to={`/workspaces/${workspaceId}/settings`} 
+              style={{ ...styles.navLink, ...(location.pathname.includes('/settings') ? styles.activeNavLink : {}) }}
+            >
+              Settings
+            </Link>
+          )}
         </nav>
 
         <div style={{ marginTop: 'auto' }}>

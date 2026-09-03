@@ -79,6 +79,9 @@ export default function DashboardPage() {
   };
 
   const isDark = theme === 'dark';
+  const textPrimary = isDark ? '#f8fafc' : '#0f172a';
+  const textSecondary = isDark ? '#94a3b8' : '#475569';
+  const textMuted = isDark ? '#64748b' : '#94a3b8';
   const currentStyles = getStyles(isDark, isMobile);
 
   if (isLoading) {
@@ -250,28 +253,80 @@ export default function DashboardPage() {
             </>
           ) : (
             <div style={currentStyles.settingsContainer}>
-              <h2 style={currentStyles.pageTitle}>Account Settings</h2>
-              <div style={{...currentStyles.card, marginTop: '2rem', cursor: 'default'}}>
-                <h3 style={currentStyles.cardTitle}>Appearance</h3>
-                <p style={{...currentStyles.cardDesc, marginTop: '0.5rem'}}>
-                  Customize how Task2Do looks on your device.
-                </p>
-                <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <button 
-                    onClick={toggleTheme}
-                    style={currentStyles.primaryButton}
-                  >
-                    Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
-                  </button>
+              <div style={currentStyles.contentHeader}>
+                <div>
+                  <h2 style={currentStyles.pageTitle}>Account Settings</h2>
+                  <p style={{ color: textSecondary, marginTop: '0.5rem' }}>Manage your account preferences and profile details.</p>
                 </div>
               </div>
-              
-              <div style={{...currentStyles.card, marginTop: '1.5rem', cursor: 'default'}}>
-                <h3 style={currentStyles.cardTitle}>Profile Profile</h3>
-                <p style={{...currentStyles.cardDesc, marginTop: '0.5rem'}}>
-                  Name: {user?.name} <br/>
-                  Email: {user?.email}
-                </p>
+
+              <div style={currentStyles.settingsGrid}>
+                {/* Profile Section */}
+                <div style={{...currentStyles.card, cursor: 'default'}}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                    <div style={{...currentStyles.avatar, width: '64px', height: '64px', fontSize: '1.75rem'}}>
+                      {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div>
+                      <h3 style={{...currentStyles.cardTitle, fontSize: '1.25rem'}}>{user?.name || 'User'}</h3>
+                      <p style={{ color: textSecondary, fontSize: '0.95rem', marginTop: '0.25rem' }}>{user?.email || 'email@example.com'}</p>
+                    </div>
+                  </div>
+                  
+                  <div style={{ borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, paddingTop: '1.5rem' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: textPrimary }}>Personal Information</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>Full Name</label>
+                        <div style={{ padding: '0.75rem 1rem', backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, color: textPrimary }}>
+                          {user?.name}
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>Email Address</label>
+                        <div style={{ padding: '0.75rem 1rem', backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, color: textPrimary }}>
+                          {user?.email}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Appearance Section */}
+                <div style={{...currentStyles.card, cursor: 'default', alignSelf: 'start'}}>
+                  <h3 style={currentStyles.cardTitle}>Appearance</h3>
+                  <p style={{...currentStyles.cardDesc, marginTop: '0.5rem'}}>
+                    Customize how Task2Do looks on your device.
+                  </p>
+                  
+                  <div style={{ 
+                    marginTop: '1.5rem', 
+                    padding: '1.25rem', 
+                    borderRadius: '12px', 
+                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ fontSize: '1.75rem' }}>{isDark ? '🌙' : '☀️'}</span>
+                      <div>
+                        <div style={{ fontWeight: 600, color: textPrimary }}>{isDark ? 'Dark Mode' : 'Light Mode'}</div>
+                        <div style={{ fontSize: '0.85rem', color: textSecondary, marginTop: '0.2rem' }}>Currently active theme</div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={toggleTheme}
+                      style={{
+                        ...currentStyles.secondaryButton,
+                        padding: '0.5rem 1rem',
+                      }}
+                    >
+                      Switch to {isDark ? 'Light' : 'Dark'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -409,7 +464,13 @@ const getStyles = (isDark: boolean, isMobile: boolean): Record<string, React.CSS
     settingsContainer: {
       display: 'flex',
       flexDirection: 'column',
-      maxWidth: '800px',
+      maxWidth: '1000px',
+      width: '100%',
+    },
+    settingsGrid: {
+      display: 'grid',
+      gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr',
+      gap: '1.5rem',
     },
     contentHeader: {
       display: 'flex',

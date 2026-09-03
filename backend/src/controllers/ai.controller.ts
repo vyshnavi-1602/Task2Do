@@ -82,3 +82,69 @@ STRICT RULES:
     });
   }
 });
+
+export const summarizeIssue = asyncHandler(async (req: Request, res: Response) => {
+  const { issueId, projectId } = req.body;
+  const userId = req.user?.id;
+
+  if (!issueId || !projectId) {
+    return res.status(400).json({ success: false, error: { message: 'issueId and projectId are required' } });
+  }
+
+  const issue = await prisma.issue.findUnique({
+    where: { id: issueId, projectId },
+    include: {
+      comments: {
+        include: { author: { select: { name: true } } },
+        orderBy: { createdAt: 'asc' }
+      }
+    }
+  });
+
+  if (!issue) {
+    return res.status(404).json({ success: false, error: { message: 'Issue not found' } });
+  }
+
+  if (!ai) {
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+
+  let prompt = `Summarize the following issue and its discussion thread.\n\n`;
+  prompt += `Title: ${issue.title}\n`;
+  prompt += `Description: ${issue.description || 'No description provided.'}\n\n`;
+  
+  if (issue.comments.length > 0) {
+    prompt += `Comments:\n`;
+    issue.comments.forEach(c => {
+      prompt += `${c.author.name}: ${c.text}\n`;
+    });
+  } else {
+    prompt += `No comments yet.\n`;
+  }
+
+  prompt += `\nPlease provide a concise summary of the main points, current status based on comments, and any actionable next steps identified in the discussion.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: "You are an expert technical project manager assistant. Summarize the issue clearly and concisely.",
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        summary: response.text,
+      }
+    });
+  } catch (error: any) {
+    console.error('AI Summarization Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { message: 'Failed to generate summary.', details: error.message }
+    });
+  }
+});
+

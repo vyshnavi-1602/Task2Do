@@ -38,7 +38,10 @@ export const getWorkspaces = asyncHandler(async (req: Request, res: Response) =>
   const workspaces = await prisma.workspace.findMany({
     where: {
       members: {
-        some: { userId },
+        some: { 
+          userId,
+          role: { in: ['ADMIN', 'MEMBER'] },
+        },
       },
     },
     include: {

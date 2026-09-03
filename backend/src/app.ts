@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -22,6 +23,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+
+// Serve static uploaded files
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 // API Routes
 app.use('/api/v1', v1Routes);

@@ -5,6 +5,7 @@ import workspaceRoutes from './workspace';
 import notificationRoutes from './notification';
 import activityRoutes from './activity';
 import aiRoutes from './ai';
+import attachmentRoutes from './attachments';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.use('/workspaces', workspaceRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/activities', activityRoutes);
 router.use('/ai', aiRoutes);
+router.use('/attachments', attachmentRoutes);
 
 // Future routes will be mounted here:
 // router.use('/auth', authRoutes);
