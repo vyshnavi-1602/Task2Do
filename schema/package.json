@@ -6,7 +6,8 @@
   "scripts": {
     "build": "echo 'Schema building...'",
     "test": "echo 'Schema testing...'",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "generate": "prisma generate"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

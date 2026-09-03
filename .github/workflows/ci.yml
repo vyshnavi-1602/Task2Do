@@ -18,7 +18,7 @@ jobs:
     - uses: pnpm/action-setup@v3
       with: { version: 9 }
     - run: pnpm install --config.ignore-scripts=true
-    - run: pnpm -F @task2do/schema exec prisma generate
+    - run: pnpm -F @task2do/schema run generate
     - run: pnpm lint
 
   typecheck:
@@ -32,7 +32,7 @@ jobs:
     - uses: pnpm/action-setup@v3
       with: { version: 9 }
     - run: pnpm install --config.ignore-scripts=true
-    - run: pnpm -F @task2do/schema exec prisma generate
+    - run: pnpm -F @task2do/schema run generate
     - run: pnpm typecheck
 
   build:
@@ -46,5 +46,5 @@ jobs:
     - uses: pnpm/action-setup@v3
       with: { version: 9 }
     - run: pnpm install --config.ignore-scripts=true
-    - run: pnpm -F @task2do/schema exec prisma generate
+    - run: pnpm -F @task2do/schema run generate
     - run: pnpm build
