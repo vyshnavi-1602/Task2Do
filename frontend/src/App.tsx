@@ -18,6 +18,8 @@ import { ChatWidget } from './components/chat/ChatWidget';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
+import { SocketProvider } from './context/SocketContext';
+
 // Configure TanStack Query Client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,54 +35,56 @@ function App() {
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              
-              <Route path="/" element={<HeroPage />} />
+          <SocketProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                
+                <Route path="/" element={<HeroPage />} />
 
-              {/* Protected Routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                } 
-              />
+                {/* Protected Routes */}
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  } 
+                />
 
-              <Route
-                path="/workspaces/:workspaceId"
-                element={
-                  <ProtectedRoute>
-                    <WorkspaceLayout />
-                  </ProtectedRoute>
-                }
-              >
-                {/* Redirect root workspace to dashboard */}
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<WorkspaceDashboardPage />} />
-                <Route path="projects" element={<ProjectListPage />} />
-                <Route path="members" element={<MembersPage />} />
-                <Route path="settings" element={<WorkspaceSettingsPage />} />
-              </Route>
+                <Route
+                  path="/workspaces/:workspaceId"
+                  element={
+                    <ProtectedRoute>
+                      <WorkspaceLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  {/* Redirect root workspace to dashboard */}
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<WorkspaceDashboardPage />} />
+                  <Route path="projects" element={<ProjectListPage />} />
+                  <Route path="members" element={<MembersPage />} />
+                  <Route path="settings" element={<WorkspaceSettingsPage />} />
+                </Route>
 
-              <Route
-                path="/workspaces/:workspaceId/projects/:projectId"
-                element={
-                  <ProtectedRoute>
-                    <ProjectLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="backlog" replace />} />
-                <Route path="backlog" element={<BacklogPage />} />
-                <Route path="board" element={<BoardPage />} />
-              </Route>
-            </Routes>
-            <ChatWidget />
-          </BrowserRouter>
+                <Route
+                  path="/workspaces/:workspaceId/projects/:projectId"
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Navigate to="backlog" replace />} />
+                  <Route path="backlog" element={<BacklogPage />} />
+                  <Route path="board" element={<BoardPage />} />
+                </Route>
+              </Routes>
+              <ChatWidget />
+            </BrowserRouter>
+          </SocketProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GoogleOAuthProvider>

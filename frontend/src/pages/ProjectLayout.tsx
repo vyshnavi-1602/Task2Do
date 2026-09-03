@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useParams, Link, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Menu, X } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { NotificationBell } from '../components/notifications/NotificationBell';
+import { LivePresence } from '../components/board/LivePresence';
+import { useSocket } from '../context/SocketContext';
 
 export default function ProjectLayout() {
   const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
@@ -24,6 +26,27 @@ export default function ProjectLayout() {
   }, []);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  const { socket, isConnected } = useSocket();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socket || !isConnected || !projectId) return;
+
+    const invalidateIssues = () => {
+      queryClient.invalidateQueries({ queryKey: ['issues', projectId] });
+    };
+
+    socket.on('issue:created', invalidateIssues);
+    socket.on('issue:updated', invalidateIssues);
+    socket.on('issue:deleted', invalidateIssues);
+
+    return () => {
+      socket.off('issue:created', invalidateIssues);
+      socket.off('issue:updated', invalidateIssues);
+      socket.off('issue:deleted', invalidateIssues);
+    };
+  }, [socket, isConnected, projectId, queryClient]);
 
 
   const { data: project, isLoading, error } = useQuery({
@@ -92,7 +115,8 @@ export default function ProjectLayout() {
       </aside>
 
       <main style={{ ...currentStyles.main, display: 'flex', flexDirection: 'column', padding: 0 }}>
-        <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#fff', minHeight: '60px' }}>
+        <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', minHeight: '60px', gap: '16px' }}>
+          <LivePresence />
           <NotificationBell />
         </header>
         <div style={{ flex: 1, overflow: 'auto', padding: isBoard ? (isMobile ? '8px' : '24px') : (isMobile ? '16px' : '32px') }}>
