@@ -5,7 +5,8 @@
   "main": "index.ts",
   "scripts": {
     "build": "echo 'Schema building...'",
-    "test": "echo 'Schema testing...'"
+    "test": "echo 'Schema testing...'",
+    "postinstall": "prisma generate"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
