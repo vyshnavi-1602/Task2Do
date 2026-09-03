@@ -9,6 +9,8 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -16,10 +18,13 @@ jobs:
     - uses: pnpm/action-setup@v3
       with: { version: 9 }
     - run: pnpm install --config.ignore-scripts=true
+    - run: pnpm -F @task2do/schema exec prisma generate
     - run: pnpm lint
 
   typecheck:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -32,6 +37,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
