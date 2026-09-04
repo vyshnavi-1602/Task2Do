@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import MDEditor from '@uiw/react-md-editor';
+import { MarkdownMentionEditor } from './MarkdownMentionEditor';
+import { useTheme } from '../../context/ThemeContext';
 
 interface CommentProps {
   comment: {
@@ -13,6 +16,7 @@ interface CommentProps {
   };
   currentUser: any;
   userRole: 'ADMIN' | 'MEMBER' | 'VIEWER';
+  members?: any[];
   onUpdate: (text: string) => void;
   onDelete: () => void;
 }
@@ -20,6 +24,7 @@ interface CommentProps {
 export function CommentSection({ comment, currentUser, userRole, onUpdate, onDelete }: CommentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(comment.text);
+  const { theme } = useTheme();
 
   const isAuthor = currentUser?.id === comment.author.id;
   const canEdit = isAuthor && userRole !== 'VIEWER';
@@ -47,12 +52,12 @@ export function CommentSection({ comment, currentUser, userRole, onUpdate, onDel
         
         {isEditing ? (
           <div style={{ marginTop: '8px' }}>
-            <textarea
-              className="comment-textarea"
-              style={{ minHeight: '60px' }}
+            <MarkdownMentionEditor
               value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              autoFocus
+              onChange={setEditValue}
+              onMention={() => {}} // Mentions aren't actively notified on edits right now, but could be
+              members={[]} // In edit mode, we could pass members if we wanted to support new mentions during edit. 
+                           // For now we'll pass empty array to satisfy props.
             />
             <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
               <button className="primary-button" onClick={handleSave}>Save</button>
@@ -69,8 +74,8 @@ export function CommentSection({ comment, currentUser, userRole, onUpdate, onDel
             </div>
           </div>
         ) : (
-          <div className="timeline-body" style={{ whiteSpace: 'pre-wrap' }}>
-            {comment.text}
+          <div className="timeline-body" data-color-mode={theme}>
+            <MDEditor.Markdown source={comment.text} style={{ backgroundColor: 'transparent' }} />
           </div>
         )}
 

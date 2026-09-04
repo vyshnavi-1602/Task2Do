@@ -51,35 +51,54 @@ STRICT RULES:
 5. Always be helpful, concise, and friendly. Do not use markdown unless formatting a list or code.`;
     } else {
       contextStr = `You are "Task2Do Assistant", a helpful and intelligent AI guide for the Task2Do agile project management app. 
+Here is some context about the current user asking the question:
+They are currently logged in but they are NOT a member of any workspaces yet.
+
+STRICT RULES:
+1. Task2Do is a professional Agile Project Management tool (similar to Jira or Linear) used by companies and development teams. 
+2. It features Workspaces, Projects, Backlogs, active Sprints, and Kanban Boards.
+3. DO NOT hallucinate features like personal to-do lists, alarms, grocery shopping, or widgets.
+4. Your primary goal is to guide the user to create their first workspace from the dashboard to get started.`;
+    }
+  } else {
+    contextStr = `You are "Task2Do Assistant", a helpful and intelligent AI guide for the Task2Do agile project management app. 
 STRICT RULES:
 1. Task2Do is a professional Agile Project Management tool (similar to Jira or Linear) used by companies and development teams. 
 2. It features Workspaces, Projects, Backlogs, active Sprints, and Kanban Boards.
 3. DO NOT hallucinate features like personal to-do lists, alarms, grocery shopping, or widgets.
 4. The user asking this question is NOT currently logged in. Your primary goal is to briefly explain what Task2Do does based ONLY on the features above, and politely encourage them to sign up or log in.`;
-    }
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+    const responseStream = await ai.models.generateContentStream({
+      model: 'gemini-3.6-flash',
       contents: prompt,
       config: {
         systemInstruction: contextStr,
       }
     });
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        response: response.text,
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
       }
-    });
+    }
+    
+    res.write('data: [DONE]\n\n');
+    res.end();
   } catch (error: any) {
     console.error('AI Chat Error:', error);
-    return res.status(500).json({
-      success: false,
-      error: { message: 'Failed to communicate with AI service.', details: error.message }
-    });
+    if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        error: { message: 'Failed to communicate with AI service.', details: error.message }
+      });
+    }
+    res.end();
   }
 });
 
@@ -91,7 +110,7 @@ export const summarizeIssue = asyncHandler(async (req: Request, res: Response) =
     return res.status(400).json({ success: false, error: { message: 'issueId and projectId are required' } });
   }
 
-  const issue = await prisma.issue.findUnique({
+  const issue = await prisma.issue.findFirst({
     where: { id: issueId, projectId },
     include: {
       comments: {
@@ -126,7 +145,7 @@ export const summarizeIssue = asyncHandler(async (req: Request, res: Response) =
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt,
       config: {
         systemInstruction: "You are an expert technical project manager assistant. Summarize the issue clearly and concisely.",

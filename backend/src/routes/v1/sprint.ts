@@ -7,6 +7,7 @@ const router = Router({ mergeParams: true });
 
 router.post('/', requireWorkspaceMember('MEMBER'), sprintController.createSprint);
 router.get('/', requireWorkspaceMember('VIEWER'), sprintController.getSprints);
+router.get('/active/metrics', requireWorkspaceMember('VIEWER'), sprintController.getActiveSprintMetrics);
 router.patch('/:sprintId', requireWorkspaceMember('MEMBER'), sprintController.updateSprint);
 
 export default router;

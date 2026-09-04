@@ -6,6 +6,7 @@ import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { NotificationBell } from '../components/notifications/NotificationBell';
 import { LivePresence } from '../components/board/LivePresence';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { useSocket } from '../context/SocketContext';
 
 export default function ProjectLayout() {
@@ -60,7 +61,8 @@ export default function ProjectLayout() {
 
   const isBacklog = location.pathname.includes('/backlog');
   const isBoard = location.pathname.includes('/board');
-  const currentStyles = getStyles(isMobile, isSidebarOpen, isBoard);
+  const isActivity = location.pathname.includes('/activity');
+  const currentStyles = getStyles(isMobile, isSidebarOpen, isBoard || isActivity);
 
   if (isLoading) {
     return <div style={currentStyles.center}><LoadingSpinner /></div>;
@@ -107,15 +109,23 @@ export default function ProjectLayout() {
           >
             Board
           </Link>
+          <Link 
+            to={`/workspaces/${workspaceId}/projects/${projectId}/activity`} 
+            style={{ ...currentStyles.navLink, ...(isActivity ? currentStyles.activeNavLink : {}) }}
+            onClick={() => isMobile && setIsSidebarOpen(false)}
+          >
+            Activity
+          </Link>
         </nav>
 
-        <div style={{ marginTop: 'auto' }}>
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <Link to={`/workspaces/${workspaceId}/projects`} style={currentStyles.backLink}>← Back to Projects</Link>
         </div>
       </aside>
 
       <main style={{ ...currentStyles.main, display: 'flex', flexDirection: 'column', padding: 0 }}>
         <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', minHeight: '60px', gap: '16px' }}>
+          <ThemeToggle />
           <LivePresence />
           <NotificationBell />
         </header>
@@ -136,7 +146,8 @@ const getStyles = (isMobile: boolean, isSidebarOpen: boolean, isBoard: boolean =
   },
   container: {
     display: 'flex',
-    minHeight: '100vh',
+    height: '100vh',
+    overflow: 'hidden',
     position: 'relative',
   },
   mobileMenuBtn: {
@@ -235,8 +246,6 @@ const getStyles = (isMobile: boolean, isSidebarOpen: boolean, isBoard: boolean =
   main: {
     flex: 1,
     padding: isBoard ? (isMobile ? 'var(--space-2)' : 'var(--space-4)') : (isMobile ? 'var(--space-4)' : 'var(--space-8)'),
-    overflowY: 'auto',
-    overflowX: 'auto',
     backgroundColor: 'var(--bg-color)',
     width: isMobile ? '100%' : 'calc(100% - 260px)',
   },

@@ -5,7 +5,7 @@ import { getIO } from '../socket';
 
 export const createIssue = asyncHandler(async (req: Request, res: Response) => {
   const { projectId } = req.params;
-  const { title, description, priority, type, points, parentIssueId, epicId } = req.body;
+  const { title, description, priority, type, points, parentIssueId, epicId, boardId } = req.body;
   const reporterId = req.user!.id;
 
   if (!title) {
@@ -54,7 +54,22 @@ export const createIssue = asyncHandler(async (req: Request, res: Response) => {
     });
     const newRank = maxRankIssue ? maxRankIssue.rank + 100 : 1000;
 
-    // 3. Create the issue
+    // 3. Find target board and default column
+    let targetBoardId = boardId;
+    if (!targetBoardId) {
+      const firstBoard = await tx.board.findFirst({
+        where: { projectId },
+        orderBy: { createdAt: 'asc' },
+      });
+      targetBoardId = firstBoard?.id;
+    }
+
+    const defaultColumn = targetBoardId ? await tx.boardColumn.findFirst({
+      where: { boardId: targetBoardId },
+      orderBy: { rank: 'asc' },
+    }) : null;
+
+    // 4. Create the issue
     return await tx.issue.create({
       data: {
         key: issueKey,
@@ -68,6 +83,8 @@ export const createIssue = asyncHandler(async (req: Request, res: Response) => {
         reporterId,
         parentIssueId,
         epicId,
+        boardId: targetBoardId,
+        statusId: defaultColumn?.id,
       },
     });
   });
@@ -94,7 +111,8 @@ export const getIssues = asyncHandler(async (req: Request, res: Response) => {
     include: {
       assignee: { select: { id: true, name: true, avatarUrl: true } },
       epic: { select: { id: true, key: true, title: true } },
-      subtasks: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
+      subtasks: { select: { id: true, key: true, title: true, statusId: true, assignee: { select: { name: true } } } },
+      status: true,
     },
     orderBy: { rank: 'asc' },
   });
@@ -112,8 +130,9 @@ export const getIssue = asyncHandler(async (req: Request, res: Response) => {
       reporter: { select: { id: true, name: true, avatarUrl: true } },
       epic: { select: { id: true, key: true, title: true } },
       parentIssue: { select: { id: true, key: true, title: true } },
-      subtasks: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
-      epicIssues: { select: { id: true, status: true } },
+      subtasks: { select: { id: true, key: true, title: true, statusId: true, assignee: { select: { name: true } } } },
+      epicIssues: { select: { id: true, statusId: true } },
+      status: true,
       attachments: true,
     },
   });
@@ -127,7 +146,7 @@ export const getIssue = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
   const { projectId, issueId } = req.params;
-  const { title, description, status, priority, type, points, assigneeId, sprintId, rank, parentIssueId, epicId } = req.body;
+  const { title, description, statusId, priority, type, points, assigneeId, sprintId, rank, parentIssueId, epicId, boardId } = req.body;
   const userId = req.user!.id;
 
   const issue = await prisma.issue.findUnique({
@@ -138,9 +157,13 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, error: { message: 'Issue not found' } });
   }
 
-  // STATUS VALIDATION (IssueStatus Enum)
-  if (status && !['TO_DO', 'IN_PROGRESS', 'DONE'].includes(status)) {
-    return res.status(400).json({ success: false, error: { message: 'Invalid status value' } });
+  // STATUS VALIDATION
+  let statusColumn: any = null;
+  if (statusId && statusId !== issue.statusId) {
+    statusColumn = await prisma.boardColumn.findUnique({ where: { id: statusId } });
+    if (!statusColumn) {
+      return res.status(400).json({ success: false, error: { message: 'Invalid status column' } });
+    }
   }
 
   // ASSIGNEE VALIDATION (Must be workspace member)
@@ -196,10 +219,10 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { message: 'parentIssueId can only be set for SUB_TASK' } });
   }
 
-  // If rank or status is changing, we use a transaction to safely update and shift surrounding issues
+  // If rank or statusId is changing, we use a transaction to safely update and shift surrounding issues
   const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const oldStatus = issue.status;
-    const newStatus = status || oldStatus;
+    const oldStatusId = issue.statusId;
+    const newStatusId = statusId || oldStatusId;
     const oldRank = issue.rank;
     
     // Determine the active sprint constraint. 
@@ -208,28 +231,28 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     
     let newRank = rank;
 
-    if (newRank !== undefined || newStatus !== oldStatus) {
+    if (newRank !== undefined || newStatusId !== oldStatusId) {
       if (newRank === undefined) {
         // If status changed but rank didn't, append to the bottom of the new column
         const maxRankIssue = await tx.issue.findFirst({
-          where: { projectId, sprintId: effectiveSprintId, status: newStatus as any },
+          where: { projectId, sprintId: effectiveSprintId, statusId: newStatusId as any },
           orderBy: { rank: 'desc' }
         });
         newRank = maxRankIssue ? maxRankIssue.rank + 1 : 1;
       }
 
-      if (oldStatus === newStatus) {
+      if (oldStatusId === newStatusId) {
         // Reordering within the SAME column
         if (newRank < oldRank) {
           // Moving up: shift intermediate items down
           await tx.issue.updateMany({
-            where: { projectId, sprintId: effectiveSprintId, status: oldStatus, rank: { gte: newRank, lt: oldRank } },
+            where: { projectId, sprintId: effectiveSprintId, statusId: oldStatusId, rank: { gte: newRank, lt: oldRank } },
             data: { rank: { increment: 1 } }
           });
         } else if (newRank > oldRank) {
           // Moving down: shift intermediate items up
           await tx.issue.updateMany({
-            where: { projectId, sprintId: effectiveSprintId, status: oldStatus, rank: { lte: newRank, gt: oldRank } },
+            where: { projectId, sprintId: effectiveSprintId, statusId: oldStatusId, rank: { lte: newRank, gt: oldRank } },
             data: { rank: { decrement: 1 } }
           });
         }
@@ -237,13 +260,13 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
         // Moving to a DIFFERENT column
         // 1. Shift old column items up to fill the gap
         await tx.issue.updateMany({
-          where: { projectId, sprintId: issue.sprintId, status: oldStatus, rank: { gt: oldRank } },
+          where: { projectId, sprintId: issue.sprintId, statusId: oldStatusId, rank: { gt: oldRank } },
           data: { rank: { decrement: 1 } }
         });
 
         // 2. Shift new column items down to make space
         await tx.issue.updateMany({
-          where: { projectId, sprintId: effectiveSprintId, status: newStatus as any, rank: { gte: newRank } },
+          where: { projectId, sprintId: effectiveSprintId, statusId: newStatusId as any, rank: { gte: newRank } },
           data: { rank: { increment: 1 } }
         });
       }
@@ -252,8 +275,14 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
     // ACTIVITY LOGGING
     const activities = [];
 
-    if (status && oldStatus !== status) {
-      activities.push({ type: 'STATUS_CHANGE', oldValue: oldStatus, newValue: status, issueId, userId });
+    if (statusId && oldStatusId !== statusId) {
+      // Need to fetch old status title for activity log if we want human readable names
+      let oldTitle = 'Unknown';
+      if (oldStatusId) {
+         const oldCol = await tx.boardColumn.findUnique({ where: { id: oldStatusId } });
+         if (oldCol) oldTitle = oldCol.title;
+      }
+      activities.push({ type: 'STATUS_CHANGE', oldValue: oldTitle, newValue: statusColumn.title, issueId, userId });
     }
     if (assigneeId !== undefined && issue.assigneeId !== assigneeId) {
       activities.push({ type: 'ASSIGNEE_CHANGE', oldValue: issue.assigneeId || 'Unassigned', newValue: assigneeId || 'Unassigned', issueId, userId });
@@ -297,13 +326,14 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
       data: {
         ...(title && { title }),
         ...(description !== undefined && { description }),
-        ...(status && { status: status as any }),
+        ...(newStatusId !== undefined && { statusId: newStatusId }),
         ...(priority && { priority: priority as any }),
         ...(type && { type: type as any }),
         ...(points !== undefined && { points: newPoints }),
         ...(assigneeId !== undefined && { assigneeId }),
         ...(sprintId !== undefined && { sprintId }),
-        ...(newRank !== undefined && { rank: parseInt(newRank) }),
+        ...(boardId !== undefined && { boardId }),
+        ...(newRank !== undefined && { rank: parseInt(newRank as string) }),
         ...(parentIssueId !== undefined && { parentIssueId }),
         ...(epicId !== undefined && { epicId }),
         version: { increment: 1 },

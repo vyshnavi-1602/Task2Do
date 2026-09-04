@@ -14,11 +14,13 @@ import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProjectLayout from './pages/ProjectLayout';
 import BacklogPage from './pages/BacklogPage';
 import BoardPage from './pages/BoardPage';
+import ProjectActivityPage from './pages/ProjectActivityPage';
 import { ChatWidget } from './components/chat/ChatWidget';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import { SocketProvider } from './context/SocketContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Configure TanStack Query Client
 const queryClient = new QueryClient({
@@ -34,58 +36,61 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <SocketProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                
-                <Route path="/" element={<HeroPage />} />
+        <ThemeProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  
+                  <Route path="/" element={<HeroPage />} />
 
-                {/* Protected Routes */}
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <DashboardPage />
-                    </ProtectedRoute>
-                  } 
-                />
+                  {/* Protected Routes */}
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      <ProtectedRoute>
+                        <DashboardPage />
+                      </ProtectedRoute>
+                    } 
+                  />
 
-                <Route
-                  path="/workspaces/:workspaceId"
-                  element={
-                    <ProtectedRoute>
-                      <WorkspaceLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  {/* Redirect root workspace to dashboard */}
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<WorkspaceDashboardPage />} />
-                  <Route path="projects" element={<ProjectListPage />} />
-                  <Route path="members" element={<MembersPage />} />
-                  <Route path="settings" element={<WorkspaceSettingsPage />} />
-                </Route>
+                  <Route
+                    path="/workspaces/:workspaceId"
+                    element={
+                      <ProtectedRoute>
+                        <WorkspaceLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    {/* Redirect root workspace to dashboard */}
+                    <Route index element={<Navigate to="dashboard" replace />} />
+                    <Route path="dashboard" element={<WorkspaceDashboardPage />} />
+                    <Route path="projects" element={<ProjectListPage />} />
+                    <Route path="members" element={<MembersPage />} />
+                    <Route path="settings" element={<WorkspaceSettingsPage />} />
+                  </Route>
 
-                <Route
-                  path="/workspaces/:workspaceId/projects/:projectId"
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Navigate to="backlog" replace />} />
-                  <Route path="backlog" element={<BacklogPage />} />
-                  <Route path="board" element={<BoardPage />} />
-                </Route>
-              </Routes>
-              <ChatWidget />
-            </BrowserRouter>
-          </SocketProvider>
-        </AuthProvider>
+                  <Route
+                    path="/workspaces/:workspaceId/projects/:projectId"
+                    element={
+                      <ProtectedRoute>
+                        <ProjectLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<Navigate to="backlog" replace />} />
+                    <Route path="backlog" element={<BacklogPage />} />
+                    <Route path="board" element={<BoardPage />} />
+                    <Route path="activity" element={<ProjectActivityPage />} />
+                  </Route>
+                </Routes>
+                <ChatWidget />
+              </BrowserRouter>
+            </SocketProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </GoogleOAuthProvider>
   );

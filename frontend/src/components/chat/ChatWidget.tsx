@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { apiClient } from '../../lib/apiClient';
 import './ChatWidget.css';
 
 interface Message {
@@ -50,24 +49,54 @@ export function ChatWidget() {
     setIsLoading(true);
 
     try {
-      const response: any = await apiClient.post('/ai/chat', {
-        prompt: userMessage.text
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ prompt: userMessage.text })
       });
       
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'bot',
-        text: response.response || 'Sorry, I could not understand that.'
-      };
+      if (!response.ok) throw new Error('Failed to connect to AI');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       
-      setMessages(prev => [...prev, botMessage]);
+      const botMessageId = (Date.now() + 1).toString();
+      setMessages(prev => [...prev, { id: botMessageId, role: 'bot', text: '' }]);
+      
+      let botText = '';
+
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const data = JSON.parse(line.replace('data: ', ''));
+              if (data.text) {
+                botText += data.text;
+                setMessages(prev => prev.map(msg => 
+                  msg.id === botMessageId ? { ...msg, text: botText } : msg
+                ));
+              }
+            } catch (e) {
+              // Ignore parse errors from incomplete chunks
+            }
+          }
+        }
+      }
     } catch (error) {
-      const errorMessage: Message = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'bot',
         text: 'Sorry, I am having trouble connecting to the server.'
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      }]);
     } finally {
       setIsLoading(false);
     }

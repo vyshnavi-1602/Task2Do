@@ -1,32 +1,25 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { z } from 'zod';
 
 // Load .env file
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const requiredEnvVars = [
-  'PORT', 
-  'DATABASE_URL', 
-  'CLIENT_URL', 
-  'NODE_ENV',
-  'JWT_SECRET',
-  'JWT_EXPIRES_IN'
-] as const;
+const envSchema = z.object({
+  PORT: z.string().default('3000'),
+  DATABASE_URL: z.string().url(),
+  CLIENT_URL: z.string().url(),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  JWT_SECRET: z.string().min(1),
+  JWT_EXPIRES_IN: z.string().min(1),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+});
 
-export const env = {
-  PORT: process.env.PORT,
-  DATABASE_URL: process.env.DATABASE_URL,
-  CLIENT_URL: process.env.CLIENT_URL,
-  NODE_ENV: process.env.NODE_ENV,
-  JWT_SECRET: process.env.JWT_SECRET,
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN,
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-};
+const parsed = envSchema.safeParse(process.env);
 
-// Validate required variables
-for (const envVar of requiredEnvVars) {
-  if (!env[envVar]) {
-    console.error(`❌ Missing required environment variable: ${envVar}`);
-    process.exit(1);
-  }
+if (!parsed.success) {
+  console.error('❌ Invalid environment variables:', parsed.error.format());
+  process.exit(1);
 }
+
+export const env = parsed.data;

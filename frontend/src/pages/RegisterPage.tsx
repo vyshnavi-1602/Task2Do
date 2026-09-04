@@ -215,7 +215,7 @@ const getStyles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     flexDirection: isMobile ? 'column' : 'row',
     width: '100%',
     maxWidth: '850px',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--surface-color)',
     borderRadius: '24px',
     boxShadow: '0 20px 40px -15px rgba(0,0,0,0.08)',
     border: '1px solid var(--border-color)',
@@ -238,7 +238,7 @@ const getStyles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     alignItems: 'center',
     justifyContent: 'center',
     padding: isMobile ? '2rem 1.5rem' : '2.5rem',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--surface-color)',
   },
   logoWrapper: {
     display: 'flex',
@@ -371,7 +371,7 @@ const getStyles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     margin: '0',
   },
   dividerText: {
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--surface-color)',
     padding: '0 1rem',
     color: 'var(--text-muted)',
     fontSize: '0.85rem',
@@ -380,7 +380,7 @@ const getStyles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
   },
   googleButton: {
     padding: '0.875rem',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--surface-color)',
     color: 'var(--text-primary)',
     borderRadius: '12px',
     fontWeight: 500,

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma, Prisma, SprintStatus } from '@task2do/schema';
 import { asyncHandler } from '../utils/async-handler';
+import { getIO } from '../socket';
 
 export const createSprint = asyncHandler(async (req: Request, res: Response) => {
   const { projectId } = req.params;
@@ -97,5 +98,58 @@ export const updateSprint = asyncHandler(async (req: Request, res: Response) => 
     },
   });
 
+  if (status && sprint.status !== status) {
+    if (status === 'ACTIVE') {
+      getIO().to(`project:${projectId}`).emit('sprint:started', updated);
+    } else if (status === 'CLOSED') {
+      getIO().to(`project:${projectId}`).emit('sprint:completed', updated);
+    }
+  }
+
   res.status(200).json({ success: true, data: updated });
+});
+
+export const getActiveSprintMetrics = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params;
+
+  const activeSprint = await prisma.sprint.findFirst({
+    where: { projectId, status: 'ACTIVE' },
+    include: {
+      issues: { include: { status: true } }
+    }
+  });
+
+  if (!activeSprint || !activeSprint.startDate || !activeSprint.endDate) {
+    return res.status(200).json({ success: true, data: [] });
+  }
+
+  const totalPoints = activeSprint.issues.reduce((sum, issue) => sum + (issue.points || 1), 0);
+  const remainingIssues = activeSprint.issues.filter(i => i.status?.title !== 'Done');
+  const currentRemainingPoints = remainingIssues.reduce((sum, issue) => sum + (issue.points || 1), 0);
+
+  // Generate days array
+  const start = new Date(activeSprint.startDate);
+  const end = new Date(activeSprint.endDate);
+  const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
+  
+  const metrics = [];
+  const pointsPerDay = totalPoints / (daysDiff > 0 ? daysDiff : 1);
+  
+  for (let i = 0; i <= daysDiff; i++) {
+    const currentDay = new Date(start);
+    currentDay.setDate(start.getDate() + i);
+    
+    // For simplicity, we just use the current remaining points for actual.
+    // In a real app, we'd query IssueActivity to find exact completion dates.
+    // Here we'll do a basic approximation for demonstration purposes:
+    const isPastOrToday = currentDay.getTime() <= Date.now();
+    
+    metrics.push({
+      day: `Day ${i + 1}`,
+      ideal: Math.max(0, Math.round(totalPoints - (i * pointsPerDay))),
+      actual: isPastOrToday ? currentRemainingPoints : null // Null for future days
+    });
+  }
+
+  res.status(200).json({ success: true, data: metrics });
 });

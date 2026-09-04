@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
+import { NotificationBell } from '../components/notifications/NotificationBell';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
 
 export default function WorkspaceLayout() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -80,13 +82,19 @@ export default function WorkspaceLayout() {
           )}
         </nav>
 
-        <div style={{ marginTop: 'auto' }}>
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <Link to="/" style={styles.backLink}>← Back to Dashboard</Link>
         </div>
       </aside>
 
-      <main style={styles.main}>
-        <Outlet />
+      <main style={{ ...styles.main, display: 'flex', flexDirection: 'column', padding: 0 }}>
+        <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', minHeight: '60px', gap: '16px' }}>
+          <ThemeToggle />
+          <NotificationBell />
+        </header>
+        <div style={{ flex: 1, overflow: 'auto', padding: 'var(--space-8)' }}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );
@@ -101,7 +109,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   container: {
     display: 'flex',
-    minHeight: '100vh',
+    height: '100vh',
+    overflow: 'hidden',
   },
   sidebar: {
     width: '260px',
@@ -159,6 +168,5 @@ const styles: Record<string, React.CSSProperties> = {
   main: {
     flex: 1,
     padding: 'var(--space-8)',
-    overflowY: 'auto',
   },
 };

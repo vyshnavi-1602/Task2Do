@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-type Theme = 'light' | 'dark';
+import { useTheme } from '../context/ThemeContext';
 
 export default function HeroPage() {
   const navigate = useNavigate();
-  
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('theme') as Theme;
-    if (saved) return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  const { theme, toggleTheme } = useTheme();
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -20,11 +15,6 @@ export default function HeroPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
 
   // Removed auto-redirect to dashboard so users can view the hero page even if logged in.
 

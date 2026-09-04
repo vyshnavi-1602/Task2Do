@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma, Prisma } from '@task2do/schema';
 import { asyncHandler } from '../utils/async-handler';
+import { getIO } from '../socket';
 
 // Get comments for an issue
 export const getComments = asyncHandler(async (req: Request, res: Response) => {
@@ -33,7 +34,7 @@ export const createComment = asyncHandler(async (req: Request, res: Response) =>
   }
 
   try {
-    const comment = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const issue = await tx.issue.findUnique({ 
         where: { id: issueId },
         include: { project: true }
@@ -98,10 +99,12 @@ export const createComment = asyncHandler(async (req: Request, res: Response) =>
         await tx.notification.createMany({ data: notificationsToCreate });
       }
 
-      return newComment;
+      return { comment: newComment, projectId: issue.projectId };
     });
 
-    res.status(201).json({ success: true, data: comment });
+    getIO().to(`project:${result.projectId}`).emit('comment:created', result.comment);
+
+    res.status(201).json({ success: true, data: result.comment });
   } catch (err: any) {
     if (err.message === 'Issue not found') {
       return res.status(404).json({ success: false, error: { message: 'Issue not found' } });

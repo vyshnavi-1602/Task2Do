@@ -5,6 +5,7 @@ import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 import { NotificationBell } from '../components/notifications/NotificationBell';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
 
 interface Workspace {
   id: string;
@@ -101,6 +102,7 @@ export default function DashboardPage() {
         </div>
         
         <div style={currentStyles.navActions}>
+          <ThemeToggle />
           <NotificationBell />
           <div style={currentStyles.userGreeting}>
             <div style={currentStyles.avatar}>{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
@@ -231,7 +233,7 @@ export default function DashboardPage() {
                       return (
                         <div key={activity.id} style={currentStyles.activityItem}>
                           {activity.user.avatarUrl ? (
-                            <img src={activity.user.avatarUrl} alt={activity.user.name} style={currentStyles.avatarSmall} />
+                            <img src={activity.user.avatarUrl} alt={activity.user.name} style={currentStyles.avatarSmall} referrerPolicy="no-referrer" />
                           ) : (
                             <div style={{...currentStyles.avatarSmall, backgroundColor: 'var(--accent-color)'}}>
                               {activity.user.name.charAt(0).toUpperCase()}

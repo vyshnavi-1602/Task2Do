@@ -40,7 +40,7 @@ export const LivePresence: React.FC = () => {
           title={user.name}
         >
           {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" />
+            <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground text-xs font-medium uppercase">
               {user.name.charAt(0)}

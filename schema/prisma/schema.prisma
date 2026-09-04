@@ -62,6 +62,7 @@ model Project {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   sprints     Sprint[]
   issues      Issue[]
+  boards      Board[]
 
   @@unique([workspaceId, key]) // Project keys must be unique within a workspace
   @@index([workspaceId])
@@ -87,7 +88,6 @@ model Issue {
   key         String      // e.g., "ENG-123"
   title       String
   description String?
-  status      IssueStatus @default(TO_DO)
   priority    Priority    @default(MEDIUM)
   type        ItemType    @default(TASK)
   points      Int?
@@ -102,6 +102,12 @@ model Issue {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sprintId  String?
   sprint    Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  boardId   String?
+  board     Board? @relation(fields: [boardId], references: [id], onDelete: SetNull)
+
+  statusId  String?
+  status    BoardColumn? @relation(fields: [statusId], references: [id], onDelete: SetNull)
 
   reporterId String
   reporter   User    @relation("IssueReporter", fields: [reporterId], references: [id])
@@ -122,7 +128,9 @@ model Issue {
   epicIssues Issue[] @relation("IssueEpic")
 
   @@index([projectId])
+  @@index([boardId])
   @@index([sprintId])
+  @@index([statusId])
   @@index([assigneeId])
   @@index([reporterId])
   @@index([parentIssueId])
@@ -181,6 +189,34 @@ model Notification {
   @@index([issueId])
 }
 
+model Board {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  columns   BoardColumn[]
+  issues    Issue[]
+
+  @@index([projectId])
+}
+
+model BoardColumn {
+  id        String   @id @default(uuid())
+  title     String
+  rank      Int
+  createdAt DateTime @default(now())
+
+  boardId   String
+  board     Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  
+  issues    Issue[]
+
+  @@index([boardId])
+}
+
 // Enums
 enum NotificationType {
   ASSIGNED
@@ -213,12 +249,6 @@ enum ItemType {
   STORY
   EPIC
   SUB_TASK
-}
-
-enum IssueStatus {
-  TO_DO
-  IN_PROGRESS
-  DONE
 }
 
 model IssueActivity {

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../lib/apiClient';
+import { MarkdownMentionEditor } from './MarkdownMentionEditor';
 import { useAuth } from '../../context/AuthContext';
 import { ActivityFeed } from './ActivityFeed';
 import { CommentSection } from './CommentSection';
-import { MentionTextarea } from './MentionTextarea';
 import MDEditor from '@uiw/react-md-editor';
 
 interface IssueDetailsModalProps {
@@ -42,6 +43,28 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
     };
   }, [onClose]);
 
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    setIsUploading(true);
+    for (const file of acceptedFiles) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('issueId', issueId);
+      try {
+        await apiClient.post('/attachments', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } catch (err) {
+        console.error('Upload failed', err);
+        alert('Upload failed for ' + file.name);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ['issue', projectId, issueId] });
+    setIsUploading(false);
+  }, [issueId, projectId, queryClient]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
   // 1. Fetch Issue Details
   const { data: issueRes, isLoading: issueLoading } = useQuery<any>({
     queryKey: ['issue', projectId, issueId],
@@ -66,6 +89,15 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
     queryFn: () => apiClient.get(`/workspaces/${workspaceId}/members`)
   });
 
+  const issue = issueRes;
+
+  // Fetch Board Data for the issue
+  const { data: boardData } = useQuery<any>({
+    queryKey: ['board', projectId, issue?.boardId],
+    queryFn: () => apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/board?boardId=${issue?.boardId}`),
+    enabled: !!issue?.boardId
+  });
+
   // Combine & Sort Timeline
   const timeline = useMemo(() => {
     const comments = commentsRes || [];
@@ -78,8 +110,6 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
 
     return combined.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [commentsRes, activityRes]);
-
-  const issue = issueRes;
 
   // Mutations for Comments
   const createCommentMutation = useMutation({
@@ -116,6 +146,7 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
       setNewSubtaskTitle('');
     }
   });
+
 
   const updateIssueMutation = useMutation({
     mutationFn: (updates: any) => 
@@ -211,30 +242,24 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
                 )}
               </div>
               {userRole !== 'VIEWER' && (
-                <div>
-                  <input type="file" id="file-upload" style={{ display: 'none' }} onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setIsUploading(true);
-                      const formData = new FormData();
-                      formData.append('file', file);
-                      formData.append('issueId', issueId);
-                      try {
-                        await apiClient.post('/attachments', formData, {
-                          headers: { 'Content-Type': 'multipart/form-data' }
-                        });
-                        queryClient.invalidateQueries({ queryKey: ['issue', projectId, issueId] });
-                      } catch (err) {
-                        console.error('Upload failed', err);
-                        alert('Upload failed');
-                      } finally {
-                        setIsUploading(false);
-                      }
-                    }
-                  }} />
-                  <label htmlFor="file-upload" className="secondary-button" style={{ cursor: 'pointer', display: 'inline-block', fontSize: '12px', padding: '4px 8px' }}>
-                    {isUploading ? 'Uploading...' : 'Upload File'}
-                  </label>
+                <div {...getRootProps()} style={{ 
+                  border: isDragActive ? '2px dashed #0052cc' : '2px dashed var(--border-color)', 
+                  borderRadius: '4px', 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  backgroundColor: isDragActive ? 'rgba(0, 82, 204, 0.05)' : 'var(--bg-color)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  marginTop: '12px'
+                }}>
+                  <input {...getInputProps()} />
+                  {isUploading ? (
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Uploading...</p>
+                  ) : isDragActive ? (
+                    <p style={{ margin: 0, color: '#0052cc', fontWeight: 500 }}>Drop the files here ...</p>
+                  ) : (
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Drag 'n' drop some files here, or click to select files</p>
+                  )}
                 </div>
               )}
             </div>
@@ -275,9 +300,9 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
                   <div style={{ flex: 1, height: '8px', backgroundColor: '#ebecf0', borderRadius: '4px', overflow: 'hidden', display: 'flex' }}>
                     {(() => {
                       const total = issue.epicIssues.length || 1;
-                      const done = issue.epicIssues.filter((i: any) => i.status === 'DONE').length;
-                      const inProgress = issue.epicIssues.filter((i: any) => i.status === 'IN_PROGRESS').length;
-                      const todo = issue.epicIssues.filter((i: any) => i.status === 'TO_DO').length;
+                      const done = issue.epicIssues.filter((i: any) => i.status?.title?.toLowerCase() === 'done').length;
+                      const inProgress = issue.epicIssues.filter((i: any) => i.status?.title?.toLowerCase() === 'in progress').length;
+                      const todo = total - done - inProgress;
                       return (
                         <>
                           <div style={{ width: `${(done / total) * 100}%`, backgroundColor: '#36b37e' }} title={`Done: ${done}`} />
@@ -348,6 +373,7 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
                       comment={item} 
                       currentUser={user}
                       userRole={userRole}
+                      members={membersRes || []}
                       onUpdate={(text) => updateCommentMutation.mutate({ commentId: item.id, text })}
                       onDelete={() => deleteCommentMutation.mutate(item.id)}
                     />
@@ -358,37 +384,27 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
               })}
 
               {userRole !== 'VIEWER' && (
-                <div className="comment-input-area">
-                  <h4 className="sidebar-label">Add a comment</h4>
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    if (commentText.trim()) {
-                      createCommentMutation.mutate({ text: commentText, mentionedUserIds });
-                    }
-                  }}>
-                    <MentionTextarea 
-                      value={commentText}
-                      onChange={setCommentText}
-                      onMention={(userId) => {
-                        if (!mentionedUserIds.includes(userId)) {
-                          setMentionedUserIds([...mentionedUserIds, userId]);
-                        }
-                      }}
-                      members={membersRes || []}
-                      className="comment-textarea" 
-                      placeholder="Add a comment... (Type @ to mention)"
-                      disabled={createCommentMutation.isPending}
-                    />
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                      <button 
-                        type="submit" 
-                        className="primary-button"
-                        disabled={createCommentMutation.isPending}
-                      >
-                        {createCommentMutation.isPending ? 'Saving...' : 'Save'}
-                      </button>
-                    </div>
-                  </form>
+                <div className="new-comment-box" style={{ marginTop: '24px' }}>
+                  <MarkdownMentionEditor
+                    value={commentText}
+                    onChange={setCommentText}
+                    onMention={(userId) => {
+                      if (!mentionedUserIds.includes(userId)) {
+                        setMentionedUserIds([...mentionedUserIds, userId]);
+                      }
+                    }}
+                    members={membersRes || []}
+                    disabled={createCommentMutation.isPending}
+                  />
+                  <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button 
+                      className="primary-button"
+                      onClick={() => createCommentMutation.mutate({ text: commentText, mentionedUserIds })}
+                      disabled={!commentText.trim() || createCommentMutation.isPending}
+                    >
+                      {createCommentMutation.isPending ? 'Posting...' : 'Post Comment'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -397,7 +413,32 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
           <div className="modal-content-right">
             <div className="sidebar-section">
               <div className="sidebar-label">Status</div>
-              <div className="sidebar-value">{issue.status}</div>
+              <div className="sidebar-value">
+                {userRole !== 'VIEWER' && boardData?.columns ? (
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem'
+                    }}
+                    value={issue.statusId || ''}
+                    onChange={(e) => {
+                      updateIssueMutation.mutate({ statusId: e.target.value });
+                    }}
+                    disabled={updateIssueMutation.isPending}
+                  >
+                    {boardData.columns.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                ) : (
+                  issue.status?.title || 'Unknown'
+                )}
+              </div>
             </div>
             
             <div className="sidebar-section">

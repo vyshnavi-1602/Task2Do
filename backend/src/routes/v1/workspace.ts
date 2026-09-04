@@ -6,6 +6,7 @@ import * as projectController from '../../controllers/project.controller';
 import * as dashboardController from '../../controllers/dashboard.controller';
 import sprintRoutes from './sprint';
 import issueRoutes from './issue';
+import boardRoutes from './board';
 
 const router = Router();
 
@@ -43,7 +44,9 @@ router.delete('/:workspaceId/projects/:projectId', requireWorkspaceMember('ADMIN
 
 // === SPRINTS & ISSUES (Nested under Project) ===
 router.get('/:workspaceId/projects/:projectId/board', requireWorkspaceMember('VIEWER'), projectController.getBoard);
+router.get('/:workspaceId/projects/:projectId/activity', requireWorkspaceMember('VIEWER'), projectController.getProjectActivity);
 router.use('/:workspaceId/projects/:projectId/sprints', sprintRoutes);
 router.use('/:workspaceId/projects/:projectId/issues', issueRoutes);
+router.use('/:workspaceId/projects/:projectId/boards', boardRoutes);
 
 export default router;

@@ -39,6 +39,22 @@
   --transition-fast: 150ms ease-in-out;
 }
 
+[data-theme='dark'] {
+  --bg-color: #0f172a;
+  --surface-color: #1e293b;
+  --surface-hover: #334155;
+  --border-color: #334155;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  
+  --accent-color: #14b8a6;
+  --accent-hover: #0d9488;
+  
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.5);
+}
+
 /* =========================================================================
    Reset & Base Layer
    ========================================================================= */
@@ -96,28 +112,28 @@ button {
   align-items: flex-start;
 }
 .board-column {
-  background: #f4f5f7;
+  background: var(--surface-hover);
   border-radius: 4px;
   flex: 1;
   min-width: 280px;
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: none;
+  border: 1px solid var(--border-color);
 }
 .board-column-header {
   padding: 12px 12px 10px 12px;
-  border-bottom: none;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.75rem;
-  color: #5e6c84;
+  color: var(--text-secondary);
 }
 .issue-count {
-  background: var(--background-color);
+  background: var(--bg-color);
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 0.85rem;
@@ -132,16 +148,16 @@ button {
   gap: 12px;
 }
 .issue-card {
-  background: #ffffff;
+  background: var(--surface-color);
   border: none;
   border-radius: 4px;
   padding: 12px;
   cursor: grab;
-  box-shadow: 0 1px 2px 0 rgba(9, 30, 66, 0.25);
+  box-shadow: var(--shadow-sm);
   transition: background-color 0.1s ease;
 }
 .issue-card:hover {
-  background-color: #ebecf0;
+  background-color: var(--surface-hover);
 }
 .issue-card:active {
   cursor: grabbing;
@@ -279,7 +295,7 @@ button {
   flex: 1;
   padding: 32px;
   overflow-y: auto;
-  background-color: #f8fafc;
+  background-color: var(--surface-hover);
 }
 
 /* Activity & Comments */
@@ -334,7 +350,7 @@ button {
   color: var(--text-primary);
   font-size: 0.95rem;
   line-height: 1.5;
-  background: white;
+  background: var(--surface-color);
   padding: 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
