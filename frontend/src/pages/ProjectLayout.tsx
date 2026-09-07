@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { NotificationBell } from '../components/notifications/NotificationBell';
 import { LivePresence } from '../components/board/LivePresence';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
+import { UserDropdown } from '../components/ui/UserDropdown';
 import { useSocket } from '../context/SocketContext';
 
 export default function ProjectLayout() {
@@ -61,8 +62,12 @@ export default function ProjectLayout() {
 
   const isBacklog = location.pathname.includes('/backlog');
   const isBoard = location.pathname.includes('/board');
+  const isEpics = location.pathname.includes('/epics');
+  const isMilestones = location.pathname.includes('/milestones');
   const isActivity = location.pathname.includes('/activity');
-  const currentStyles = getStyles(isMobile, isSidebarOpen, isBoard || isActivity);
+  const isReports = location.pathname.includes('/reports');
+  const isAutomations = location.pathname.includes('/automations');
+  const currentStyles = getStyles(isMobile, isSidebarOpen, isBoard || isActivity || isReports || isAutomations);
 
   if (isLoading) {
     return <div style={currentStyles.center}><LoadingSpinner /></div>;
@@ -110,11 +115,39 @@ export default function ProjectLayout() {
             Board
           </Link>
           <Link 
+            to={`/workspaces/${workspaceId}/projects/${projectId}/epics`} 
+            style={{ ...currentStyles.navLink, ...(isEpics ? currentStyles.activeNavLink : {}) }}
+            onClick={() => isMobile && setIsSidebarOpen(false)}
+          >
+            Epics
+          </Link>
+          <Link 
+            to={`/workspaces/${workspaceId}/projects/${projectId}/milestones`} 
+            style={{ ...currentStyles.navLink, ...(isMilestones ? currentStyles.activeNavLink : {}) }}
+            onClick={() => isMobile && setIsSidebarOpen(false)}
+          >
+            Milestones
+          </Link>
+          <Link 
             to={`/workspaces/${workspaceId}/projects/${projectId}/activity`} 
             style={{ ...currentStyles.navLink, ...(isActivity ? currentStyles.activeNavLink : {}) }}
             onClick={() => isMobile && setIsSidebarOpen(false)}
           >
             Activity
+          </Link>
+          <Link 
+            to={`/workspaces/${workspaceId}/projects/${projectId}/reports`} 
+            style={{ ...currentStyles.navLink, ...(isReports ? currentStyles.activeNavLink : {}) }}
+            onClick={() => isMobile && setIsSidebarOpen(false)}
+          >
+            Reports
+          </Link>
+          <Link 
+            to={`/workspaces/${workspaceId}/projects/${projectId}/automations`} 
+            style={{ ...currentStyles.navLink, ...(isAutomations ? currentStyles.activeNavLink : {}) }}
+            onClick={() => isMobile && setIsSidebarOpen(false)}
+          >
+            Automations
           </Link>
         </nav>
 
@@ -128,6 +161,7 @@ export default function ProjectLayout() {
           <ThemeToggle />
           <LivePresence />
           <NotificationBell />
+          <UserDropdown />
         </header>
         <div style={{ flex: 1, overflow: 'auto', padding: isBoard ? (isMobile ? '8px' : '24px') : (isMobile ? '16px' : '32px') }}>
           <Outlet context={{ project }} />

@@ -16,6 +16,9 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Column } from '../components/board/Column';
 import { IssueCard } from '../components/board/IssueCard';
 import { IssueDetailsModal } from '../components/board/IssueDetailsModal';
+import { ListView } from '../components/board/ListView';
+import { CalendarView } from '../components/board/CalendarView';
+import { TimelineView } from '../components/board/TimelineView';
 import { apiClient } from '../lib/apiClient';
 import { useProjectSocket } from '../hooks/useProjectSocket';
 import { BoardFilters } from '../components/board/BoardFilters';
@@ -28,6 +31,7 @@ export default function BoardPage() {
   const boardId = searchParams.get('boardId');
   const [activeIssue, setActiveIssue] = useState<any | null>(null);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'board' | 'list' | 'calendar' | 'timeline'>('board');
   
   const [searchQuery, setSearchQuery] = useState('');
   const [onlyMyIssues, setOnlyMyIssues] = useState(false);
@@ -227,70 +231,123 @@ export default function BoardPage() {
             Create Board
           </button>
         )}
+        
+        {/* View Switcher */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px', backgroundColor: 'var(--surface-color)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <button 
+            onClick={() => setCurrentView('board')}
+            style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', background: currentView === 'board' ? 'var(--bg-color)' : 'transparent', color: currentView === 'board' ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: currentView === 'board' ? 600 : 400, boxShadow: currentView === 'board' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}
+          >
+            📋 Board
+          </button>
+          <button 
+            onClick={() => setCurrentView('list')}
+            style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', background: currentView === 'list' ? 'var(--bg-color)' : 'transparent', color: currentView === 'list' ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: currentView === 'list' ? 600 : 400, boxShadow: currentView === 'list' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}
+          >
+            ☰ List
+          </button>
+          <button 
+            onClick={() => setCurrentView('calendar')}
+            style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', background: currentView === 'calendar' ? 'var(--bg-color)' : 'transparent', color: currentView === 'calendar' ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: currentView === 'calendar' ? 600 : 400, boxShadow: currentView === 'calendar' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}
+          >
+            📅 Calendar
+          </button>
+          <button 
+            onClick={() => setCurrentView('timeline')}
+            style={{ padding: '6px 12px', border: 'none', borderRadius: '4px', background: currentView === 'timeline' ? 'var(--bg-color)' : 'transparent', color: currentView === 'timeline' ? 'var(--text-primary)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: currentView === 'timeline' ? 600 : 400, boxShadow: currentView === 'timeline' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}
+          >
+            📈 Timeline
+          </button>
+        </div>
       </div>
       
-      <div className="board-container" style={{ flex: 1, padding: 0, overflowX: 'auto', whiteSpace: 'nowrap' }}>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div style={{ display: 'inline-flex', height: '100%', gap: 'var(--space-4)', padding: 'var(--space-4)' }}>
-            {columns?.map((colDef: any) => (
-              <div key={colDef.id} style={{ display: 'inline-block', verticalAlign: 'top', height: '100%' }}>
-                <Column
-                  column={{
-                    id: colDef.id,
-                    title: colDef.title,
-                    issues: getFilteredIssues(colDef.issues),
-                  }}
-                  onIssueClick={(issueId) => setSelectedIssueId(issueId)}
-                  canEdit={boardData?.role !== 'VIEWER'}
-                  onRename={(columnId, currentTitle) => {
-                    const newTitle = prompt('Enter new column title:', currentTitle);
-                    if (newTitle && newTitle !== currentTitle) {
-                      apiClient.patch(`/workspaces/${workspaceId}/projects/${projectId}/boards/${boardData?.board?.id}/columns/${columnId}`, { title: newTitle })
-                        .then(() => queryClient.invalidateQueries({ queryKey: ['board', projectId, boardId] }))
-                        .catch(() => alert('Failed to rename column'));
-                    }
-                  }}
-                  onDelete={(columnId) => {
-                    if (confirm('Are you sure you want to delete this column? It must be empty.')) {
-                      apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/boards/${boardData?.board?.id}/columns/${columnId}`)
-                        .then(() => queryClient.invalidateQueries({ queryKey: ['board', projectId, boardId] }))
-                        .catch((err) => alert(err.response?.data?.error?.message || 'Failed to delete column'));
-                    }
-                  }}
-                />
-              </div>
-            ))}
-            
-            {boardData?.role !== 'VIEWER' && (
-              <div style={{ display: 'inline-block', verticalAlign: 'top', width: '320px', flexShrink: 0 }}>
-                <button 
-                  className="secondary-button" 
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px', backgroundColor: 'var(--surface-color)', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)' }}
-                  onClick={() => {
-                    const title = prompt('Enter column title:');
-                    if (title && boardData?.board?.id) {
-                      apiClient.post(`/workspaces/${workspaceId}/projects/${projectId}/boards/${boardData.board.id}/columns`, { title })
-                        .then(() => queryClient.invalidateQueries({ queryKey: ['board', projectId, boardId] }));
-                    }
-                  }}
-                >
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                  Add Column
-                </button>
-              </div>
-            )}
-            
-            <DragOverlay>
-              {activeIssue ? <IssueCard issue={activeIssue} /> : null}
-            </DragOverlay>
-          </div>
-        </DndContext>
-      </div>
+      {currentView === 'board' && (
+        <div className="board-container" style={{ flex: 1, padding: 0, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div style={{ display: 'inline-flex', height: '100%', gap: 'var(--space-4)', padding: 'var(--space-4)' }}>
+              {columns?.map((colDef: any) => (
+                <div key={colDef.id} style={{ display: 'inline-block', verticalAlign: 'top', height: '100%' }}>
+                  <Column
+                    column={{
+                      id: colDef.id,
+                      title: colDef.title,
+                      issues: getFilteredIssues(colDef.issues),
+                    }}
+                    onIssueClick={(issueId) => setSelectedIssueId(issueId)}
+                    canEdit={boardData?.role !== 'VIEWER'}
+                    onRename={(columnId, currentTitle) => {
+                      const newTitle = prompt('Enter new column title:', currentTitle);
+                      if (newTitle && newTitle !== currentTitle) {
+                        apiClient.patch(`/workspaces/${workspaceId}/projects/${projectId}/boards/${boardData?.board?.id}/columns/${columnId}`, { title: newTitle })
+                          .then(() => queryClient.invalidateQueries({ queryKey: ['board', projectId, boardId] }))
+                          .catch(() => alert('Failed to rename column'));
+                      }
+                    }}
+                    onDelete={(columnId) => {
+                      if (confirm('Are you sure you want to delete this column? It must be empty.')) {
+                        apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/boards/${boardData?.board?.id}/columns/${columnId}`)
+                          .then(() => queryClient.invalidateQueries({ queryKey: ['board', projectId, boardId] }))
+                          .catch((err) => alert(err.response?.data?.error?.message || 'Failed to delete column'));
+                      }
+                    }}
+                  />
+                </div>
+              ))}
+              
+              {boardData?.role !== 'VIEWER' && (
+                <div style={{ display: 'inline-block', verticalAlign: 'top', width: '320px', flexShrink: 0 }}>
+                  <button 
+                    className="secondary-button" 
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px', backgroundColor: 'var(--surface-color)', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)' }}
+                    onClick={() => {
+                      const title = prompt('Enter column title:');
+                      if (title && boardData?.board?.id) {
+                        apiClient.post(`/workspaces/${workspaceId}/projects/${projectId}/boards/${boardData.board.id}/columns`, { title })
+                          .then(() => queryClient.invalidateQueries({ queryKey: ['board', projectId, boardId] }));
+                      }
+                    }}
+                  >
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Column
+                  </button>
+                </div>
+              )}
+              
+              <DragOverlay>
+                {activeIssue ? <IssueCard issue={activeIssue} /> : null}
+              </DragOverlay>
+            </div>
+          </DndContext>
+        </div>
+      )}
+
+      {currentView === 'list' && (
+        <ListView 
+          boardData={{ ...boardData, columns: columns?.map((c: any) => ({ ...c, issues: getFilteredIssues(c.issues) })) }} 
+          workspaceId={workspaceId!} 
+          projectId={projectId!} 
+          onIssueClick={(id) => setSelectedIssueId(id)} 
+        />
+      )}
+
+      {currentView === 'calendar' && (
+        <CalendarView 
+          boardData={{ ...boardData, columns: columns?.map((c: any) => ({ ...c, issues: getFilteredIssues(c.issues) })) }} 
+          onIssueClick={(id) => setSelectedIssueId(id)} 
+        />
+      )}
+
+      {currentView === 'timeline' && (
+        <TimelineView 
+          boardData={{ ...boardData, columns: columns?.map((c: any) => ({ ...c, issues: getFilteredIssues(c.issues) })) }} 
+          onIssueClick={(id) => setSelectedIssueId(id)} 
+        />
+      )}
 
       {selectedIssueId && workspaceId && projectId && (
         <IssueDetailsModal

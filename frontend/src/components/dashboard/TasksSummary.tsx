@@ -78,11 +78,11 @@ export const TasksSummary: React.FC<TasksSummaryProps> = ({ tasksSummary, onTask
                     fontSize: '0.65rem', 
                     padding: '2px 6px', 
                     borderRadius: '4px',
-                    backgroundColor: issue.status === 'IN_PROGRESS' ? 'rgba(0, 82, 204, 0.1)' : 'rgba(9, 30, 66, 0.04)',
-                    color: issue.status === 'IN_PROGRESS' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                    backgroundColor: (issue.status as any)?.title === 'In Progress' || issue.status === 'IN_PROGRESS' ? 'rgba(0, 82, 204, 0.1)' : 'rgba(9, 30, 66, 0.04)',
+                    color: (issue.status as any)?.title === 'In Progress' || issue.status === 'IN_PROGRESS' ? 'var(--accent-color)' : 'var(--text-secondary)',
                     fontWeight: 600
                   }}>
-                    {issue.status.replace('_', ' ')}
+                    {typeof issue.status === 'string' ? issue.status.replace('_', ' ') : ((issue.status as any)?.title || 'Unknown')}
                   </span>
                 </div>
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

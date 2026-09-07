@@ -24,6 +24,7 @@ model User {
   attachments    Attachment[]
   notifications  Notification[]
   activities     IssueActivity[]
+  AutomationRule AutomationRule[]
 }
 
 model Workspace {
@@ -58,11 +59,14 @@ model Project {
   nextIssueNumber Int    @default(1)
 
   // Relations
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  sprints     Sprint[]
-  issues      Issue[]
-  boards      Board[]
+  workspaceId    String
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sprints        Sprint[]
+  issues         Issue[]
+  boards         Board[]
+  milestones     Milestone[]
+  labels         IssueLabel[]
+  AutomationRule AutomationRule[]
 
   @@unique([workspaceId, key]) // Project keys must be unique within a workspace
   @@index([workspaceId])
@@ -84,15 +88,18 @@ model Sprint {
 }
 
 model Issue {
-  id          String      @id @default(uuid())
-  key         String      // e.g., "ENG-123"
+  id          String   @id @default(uuid())
+  key         String // e.g., "ENG-123"
   title       String
   description String?
-  priority    Priority    @default(MEDIUM)
-  type        ItemType    @default(TASK)
+  priority    Priority @default(MEDIUM)
+  type        ItemType @default(TASK)
   points      Int?
   rank        Int // For drag-and-drop ordering
-  version     Int         @default(1) // Optimistic concurrency control
+  version     Int      @default(1) // Optimistic concurrency control
+
+  startDate DateTime?
+  dueDate   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -103,11 +110,11 @@ model Issue {
   sprintId  String?
   sprint    Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
 
-  boardId   String?
-  board     Board? @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  boardId String?
+  board   Board?  @relation(fields: [boardId], references: [id], onDelete: SetNull)
 
-  statusId  String?
-  status    BoardColumn? @relation(fields: [statusId], references: [id], onDelete: SetNull)
+  statusId String?
+  status   BoardColumn? @relation(fields: [statusId], references: [id], onDelete: SetNull)
 
   reporterId String
   reporter   User    @relation("IssueReporter", fields: [reporterId], references: [id])
@@ -120,13 +127,22 @@ model Issue {
   notifications Notification[]
 
   parentIssueId String?
-  parentIssue   Issue?   @relation("IssueSubtasks", fields: [parentIssueId], references: [id])
-  subtasks      Issue[]  @relation("IssueSubtasks")
+  parentIssue   Issue?  @relation("IssueSubtasks", fields: [parentIssueId], references: [id])
+  subtasks      Issue[] @relation("IssueSubtasks")
 
-  epicId String?
-  epic   Issue?   @relation("IssueEpic", fields: [epicId], references: [id])
+  epicId     String?
+  epic       Issue?  @relation("IssueEpic", fields: [epicId], references: [id])
   epicIssues Issue[] @relation("IssueEpic")
 
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  blockedBy IssueDependency[] @relation("BlockedBy")
+  blocking  IssueDependency[] @relation("Blocking")
+
+  labels IssueLabel[]
+
+  @@unique([projectId, key])
   @@index([projectId])
   @@index([boardId])
   @@index([sprintId])
@@ -135,13 +151,29 @@ model Issue {
   @@index([reporterId])
   @@index([parentIssueId])
   @@index([epicId])
-  @@unique([projectId, key])
+  @@index([milestoneId])
+}
+
+model IssueLabel {
+  id        String   @id @default(uuid())
+  name      String
+  color     String?
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  issues Issue[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
 }
 
 model Comment {
   id        String   @id @default(uuid())
   text      String
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   // Relations
   issueId  String
@@ -151,6 +183,34 @@ model Comment {
 
   @@index([issueId])
   @@index([authorId])
+}
+
+model AutomationRule {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean @default(true)
+
+  // Trigger (e.g. ISSUE_CREATED, STATUS_CHANGED)
+  triggerType   String
+  // JSON config for trigger conditions (e.g. { "statusId": "123" })
+  triggerConfig Json?
+
+  // Action (e.g. ASSIGN_USER, SEND_EMAIL)
+  actionType   String
+  // JSON config for action (e.g. { "userId": "abc" })
+  actionConfig Json?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 model Attachment {
@@ -181,9 +241,9 @@ model Notification {
   // Relations
   recipientId String
   recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
-  
-  issueId     String?
-  issue       Issue? @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  issueId String?
+  issue   Issue?  @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
   @@index([recipientId])
   @@index([issueId])
@@ -196,9 +256,9 @@ model Board {
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  columns   BoardColumn[]
-  issues    Issue[]
+
+  columns BoardColumn[]
+  issues  Issue[]
 
   @@index([projectId])
 }
@@ -209,12 +269,44 @@ model BoardColumn {
   rank      Int
   createdAt DateTime @default(now())
 
-  boardId   String
-  board     Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  
-  issues    Issue[]
+  boardId String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  issues Issue[]
 
   @@index([boardId])
+}
+
+model Milestone {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  status      String    @default("OPEN")
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues    Issue[]
+
+  @@index([projectId])
+}
+
+model IssueDependency {
+  id   String         @id @default(uuid())
+  type DependencyType @default(BLOCKS)
+
+  blockedIssueId String
+  blockedIssue   Issue  @relation("BlockedBy", fields: [blockedIssueId], references: [id], onDelete: Cascade)
+
+  blockingIssueId String
+  blockingIssue   Issue  @relation("Blocking", fields: [blockingIssueId], references: [id], onDelete: Cascade)
+
+  @@unique([blockedIssueId, blockingIssueId])
+  @@index([blockedIssueId])
+  @@index([blockingIssueId])
 }
 
 // Enums
@@ -249,6 +341,12 @@ enum ItemType {
   STORY
   EPIC
   SUB_TASK
+}
+
+enum DependencyType {
+  BLOCKS
+  RELATES_TO
+  DUPLICATES
 }
 
 model IssueActivity {

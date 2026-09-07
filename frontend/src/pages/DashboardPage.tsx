@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../lib/apiClient';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { NotificationBell } from '../components/notifications/NotificationBell';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 
@@ -20,26 +21,11 @@ export default function DashboardPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'workspaces' | 'settings'>('workspaces');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const { theme } = useTheme();
   
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('theme') as any) || 'light';
-  });
-  
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
 
-  const { data: activities, isLoading: activitiesLoading } = useQuery({
-    queryKey: ['activities'],
-    queryFn: async () => {
-      const data = await apiClient.get('/activities');
-      return data as unknown as any[];
-    },
-  });
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -82,7 +68,6 @@ export default function DashboardPage() {
   const isDark = theme === 'dark';
   const textPrimary = isDark ? '#f8fafc' : '#0f172a';
   const textSecondary = isDark ? '#94a3b8' : '#475569';
-  const textMuted = isDark ? '#64748b' : '#94a3b8';
   const currentStyles = getStyles(isDark, isMobile);
 
   if (isLoading) {
@@ -104,11 +89,39 @@ export default function DashboardPage() {
         <div style={currentStyles.navActions}>
           <ThemeToggle />
           <NotificationBell />
-          <div style={currentStyles.userGreeting}>
-            <div style={currentStyles.avatar}>{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
-            {!isMobile && <span>{user?.name}</span>}
+          <div style={{ position: 'relative' }}>
+            <div 
+              style={{...currentStyles.userGreeting, cursor: 'pointer', padding: '0.25rem 0.5rem', borderRadius: '8px', transition: 'background-color 0.2s' }} 
+              onClick={() => setShowDropdown(!showDropdown)}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDark ? '#334155' : '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <div style={currentStyles.avatar}>{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
+            </div>
+            
+            {showDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                backgroundColor: currentStyles.sidebar.backgroundColor || (isDark ? '#1e293b' : '#ffffff'),
+                border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                borderRadius: '8px',
+                padding: '1rem',
+                minWidth: '220px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                zIndex: 100,
+              }}>
+                <div style={{ fontWeight: 600, color: textPrimary, marginBottom: '0.25rem' }}>{user?.name}</div>
+                <div style={{ fontSize: '0.85rem', color: textSecondary, marginBottom: '1rem', wordBreak: 'break-all' }}>{user?.email}</div>
+                <div style={{ borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <button style={{...currentStyles.textButton, textAlign: 'left', width: '100%', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px'}} onClick={handleLogout}>
+                    <span>🚪</span> Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <button style={currentStyles.textButton} onClick={handleLogout}>Logout</button>
         </div>
       </nav>
 
@@ -117,24 +130,14 @@ export default function DashboardPage() {
         
         {/* Sidebar */}
         <aside style={currentStyles.sidebar}>
-          <div 
-            style={activeTab === 'workspaces' ? currentStyles.sidebarItemActive : currentStyles.sidebarItem}
-            onClick={() => setActiveTab('workspaces')}
-          >
+          <div style={currentStyles.sidebarItemActive}>
             <span style={{marginRight: '8px'}}>📁</span> Workspaces
           </div>
-          <div 
-            style={activeTab === 'settings' ? currentStyles.sidebarItemActive : currentStyles.sidebarItem}
-            onClick={() => setActiveTab('settings')}
-          >
-            <span style={{marginRight: '8px'}}>⚙️</span> Settings
-          </div>
+
         </aside>
 
         {/* Content Area */}
         <main style={currentStyles.content}>
-          {activeTab === 'workspaces' ? (
-            <>
               <div style={currentStyles.contentHeader}>
                 <h2 style={currentStyles.pageTitle}>Your Workspaces</h2>
                 {!isCreating && (
@@ -211,127 +214,8 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Recent Activity Section */}
-              <div style={currentStyles.activitySection}>
-                <h3 style={currentStyles.sectionTitle}>Recent Activity</h3>
-                <div style={currentStyles.activityList}>
-                  {activitiesLoading ? (
-                    <div style={{ padding: '1rem', textAlign: 'center' }}><LoadingSpinner /></div>
-                  ) : activities?.length === 0 ? (
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No recent activity to show.</div>
-                  ) : (
-                    activities?.map((activity: any) => {
-                      const timeString = new Date(activity.createdAt).toLocaleString(undefined, {
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                      });
-                      
-                      let actionText = 'updated';
-                      if (activity.type === 'STATUS_CHANGE') actionText = `changed status to ${activity.newValue}`;
-                      else if (activity.type === 'ASSIGNEE_CHANGE') actionText = `reassigned`;
-                      else if (activity.type === 'PRIORITY_CHANGE') actionText = `changed priority to ${activity.newValue}`;
-                      
-                      return (
-                        <div key={activity.id} style={currentStyles.activityItem}>
-                          {activity.user.avatarUrl ? (
-                            <img src={activity.user.avatarUrl} alt={activity.user.name} style={currentStyles.avatarSmall} referrerPolicy="no-referrer" />
-                          ) : (
-                            <div style={{...currentStyles.avatarSmall, backgroundColor: 'var(--accent-color)'}}>
-                              {activity.user.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <p style={currentStyles.activityText}>
-                            <strong>{activity.user.name}</strong> {actionText} 
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', marginLeft: '4px' }}>
-                              {activity.issue.key} - {activity.issue.title}
-                            </span>
-                          </p>
-                          <span style={currentStyles.activityTime}>{timeString}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div style={currentStyles.settingsContainer}>
-              <div style={currentStyles.contentHeader}>
-                <div>
-                  <h2 style={currentStyles.pageTitle}>Account Settings</h2>
-                  <p style={{ color: textSecondary, marginTop: '0.5rem' }}>Manage your account preferences and profile details.</p>
-                </div>
-              </div>
 
-              <div style={currentStyles.settingsGrid}>
-                {/* Profile Section */}
-                <div style={{...currentStyles.card, cursor: 'default'}}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                    <div style={{...currentStyles.avatar, width: '64px', height: '64px', fontSize: '1.75rem'}}>
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    <div>
-                      <h3 style={{...currentStyles.cardTitle, fontSize: '1.25rem'}}>{user?.name || 'User'}</h3>
-                      <p style={{ color: textSecondary, fontSize: '0.95rem', marginTop: '0.25rem' }}>{user?.email || 'email@example.com'}</p>
-                    </div>
-                  </div>
-                  
-                  <div style={{ borderTop: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, paddingTop: '1.5rem' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: textPrimary }}>Personal Information</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.85rem', color: textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>Full Name</label>
-                        <div style={{ padding: '0.75rem 1rem', backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, color: textPrimary }}>
-                          {user?.name}
-                        </div>
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.85rem', color: textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>Email Address</label>
-                        <div style={{ padding: '0.75rem 1rem', backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, color: textPrimary }}>
-                          {user?.email}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Appearance Section */}
-                <div style={{...currentStyles.card, cursor: 'default', alignSelf: 'start'}}>
-                  <h3 style={currentStyles.cardTitle}>Appearance</h3>
-                  <p style={{...currentStyles.cardDesc, marginTop: '0.5rem'}}>
-                    Customize how Task2Do looks on your device.
-                  </p>
-                  
-                  <div style={{ 
-                    marginTop: '1.5rem', 
-                    padding: '1.25rem', 
-                    borderRadius: '12px', 
-                    backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <span style={{ fontSize: '1.75rem' }}>{isDark ? '🌙' : '☀️'}</span>
-                      <div>
-                        <div style={{ fontWeight: 600, color: textPrimary }}>{isDark ? 'Dark Mode' : 'Light Mode'}</div>
-                        <div style={{ fontSize: '0.85rem', color: textSecondary, marginTop: '0.2rem' }}>Currently active theme</div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={toggleTheme}
-                      style={{
-                        ...currentStyles.secondaryButton,
-                        padding: '0.5rem 1rem',
-                      }}
-                    >
-                      Switch to {isDark ? 'Light' : 'Dark'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </main>
       </div>
     </div>
@@ -356,7 +240,8 @@ const getStyles = (isDark: boolean, isMobile: boolean): Record<string, React.CSS
       backgroundColor: bg,
     },
     container: {
-      minHeight: '100vh',
+      height: '100vh',
+      overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
       backgroundColor: bg,

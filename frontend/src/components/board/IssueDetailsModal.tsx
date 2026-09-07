@@ -91,12 +91,12 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
 
   const issue = issueRes;
 
-  // Fetch Board Data for the issue
-  const { data: boardData } = useQuery<any>({
-    queryKey: ['board', projectId, issue?.boardId],
-    queryFn: () => apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/board?boardId=${issue?.boardId}`),
-    enabled: !!issue?.boardId
+  // Fetch Board Data to get columns
+  const { data: boardRes } = useQuery<any>({
+    queryKey: ['board', projectId, issue?.boardId || 'default'],
+    queryFn: () => apiClient.get(issue?.boardId ? `/workspaces/${workspaceId}/projects/${projectId}/board?boardId=${issue.boardId}` : `/workspaces/${workspaceId}/projects/${projectId}/board`)
   });
+  const boardData = boardRes?.data;
 
   // Combine & Sort Timeline
   const timeline = useMemo(() => {
@@ -110,6 +110,25 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
 
     return combined.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [commentsRes, activityRes]);
+
+  // Fetch Dependencies
+  const { data: dependenciesRes } = useQuery<any>({
+    queryKey: ['dependencies', projectId, issueId],
+    queryFn: () => apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/dependencies/issue/${issueId}`)
+  });
+  const dependencies = dependenciesRes?.data || { blockedBy: [], blocking: [] };
+
+  const removeDependencyMutation = useMutation({
+    mutationFn: ({ blockIssueId, blockedIssueId }: { blockIssueId: string, blockedIssueId: string }) => 
+      apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/dependencies/${blockIssueId}/${blockedIssueId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dependencies', projectId, issueId] })
+  });
+
+  const addDependencyMutation = useMutation({
+    mutationFn: ({ blockIssueId, blockedIssueId }: { blockIssueId: string, blockedIssueId: string }) => 
+      apiClient.post(`/workspaces/${workspaceId}/projects/${projectId}/dependencies`, { blockIssueId, blockedIssueId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dependencies', projectId, issueId] })
+  });
 
   // Mutations for Comments
   const createCommentMutation = useMutation({
@@ -262,6 +281,54 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
                   )}
                 </div>
               )}
+            </div>
+
+            <div style={{ marginBottom: '32px' }}>
+              <h3 className="sidebar-label">Dependencies</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {dependencies.blockedBy.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '13px', marginBottom: '8px', color: '#de350b' }}>Blocked By</h4>
+                    {dependencies.blockedBy.map((dep: any) => (
+                      <div key={dep.blockIssueId} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', backgroundColor: '#ffebe6', borderRadius: '4px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px' }}>{dep.blockIssue.key} {dep.blockIssue.title}</span>
+                        {userRole !== 'VIEWER' && (
+                          <button onClick={() => removeDependencyMutation.mutate({ blockIssueId: dep.blockIssueId, blockedIssueId: issueId })} style={{ background: 'none', border: 'none', color: '#de350b', cursor: 'pointer' }}>&times;</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dependencies.blocking.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '13px', marginBottom: '8px', color: '#0052cc' }}>Blocking</h4>
+                    {dependencies.blocking.map((dep: any) => (
+                      <div key={dep.blockedIssueId} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', backgroundColor: '#e6fcff', borderRadius: '4px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '13px' }}>{dep.blockedIssue.key} {dep.blockedIssue.title}</span>
+                        {userRole !== 'VIEWER' && (
+                          <button onClick={() => removeDependencyMutation.mutate({ blockIssueId: issueId, blockedIssueId: dep.blockedIssueId })} style={{ background: 'none', border: 'none', color: '#0052cc', cursor: 'pointer' }}>&times;</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dependencies.blockedBy.length === 0 && dependencies.blocking.length === 0 && (
+                  <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>No dependencies</span>
+                )}
+                {userRole !== 'VIEWER' && (
+                  <button 
+                    onClick={() => {
+                      const input = prompt("Enter the Issue ID (UUID) that BLOCKS this issue:");
+                      if (input) {
+                        addDependencyMutation.mutate({ blockIssueId: input.trim(), blockedIssueId: issueId });
+                      }
+                    }}
+                    className="secondary-button" style={{ fontSize: '12px', padding: '4px 8px', alignSelf: 'flex-start' }}
+                  >
+                    + Add Dependency
+                  </button>
+                )}
+              </div>
             </div>
 
             <div style={{ marginBottom: '32px' }}>
@@ -425,7 +492,7 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
                       color: 'var(--text-primary)',
                       fontSize: '0.875rem'
                     }}
-                    value={issue.statusId || ''}
+                    value={issue.statusId || (boardData?.columns?.[0]?.id || '')}
                     onChange={(e) => {
                       updateIssueMutation.mutate({ statusId: e.target.value });
                     }}

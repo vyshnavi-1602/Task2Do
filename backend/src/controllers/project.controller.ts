@@ -181,29 +181,13 @@ export const getBoard = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!activeSprint) {
-    // Return empty board with columns but no sprint
-    const columnsList = boardColumns.map((col) => ({
-      ...col,
-      issues: [],
-    }));
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        board,
-        sprint: null,
-        columns: columnsList
-      }
-    });
+    // If no active sprint, we still fetch issues for the board to reflect actual database state.
   }
 
-  // Fetch all issues for the active sprint that belong to this board, or just fetch all issues in sprint and map to board columns?
-  // Since columns belong to a board, we fetch issues that are mapped to columns of THIS board.
-  // Wait, Option A: issues have `boardId`. Let's fetch issues in this sprint and this board.
+  // Fetch all issues that belong to this project and board
   const issues = await prisma.issue.findMany({
     where: {
       projectId,
-      sprintId: activeSprint.id,
       boardId: board.id,
     },
     include: {
@@ -217,10 +201,19 @@ export const getBoard = asyncHandler(async (req: Request, res: Response) => {
   });
 
   // Group issues by statusId
-  const columnsList = boardColumns.map((col) => ({
-    ...col,
-    issues: issues.filter((issue: any) => issue.statusId === col.id),
-  }));
+  const validStatusIds = boardColumns.map(c => c.id);
+  const columnsList = boardColumns.map((col, index) => {
+    let colIssues = issues.filter((issue: any) => issue.statusId === col.id);
+    if (index === 0) {
+      // Put any issues with no status or invalid status into the first column
+      const unmappedIssues = issues.filter((issue: any) => !issue.statusId || !validStatusIds.includes(issue.statusId));
+      colIssues = [...colIssues, ...unmappedIssues];
+    }
+    return {
+      ...col,
+      issues: colIssues,
+    };
+  });
 
   res.status(200).json({
     success: true,

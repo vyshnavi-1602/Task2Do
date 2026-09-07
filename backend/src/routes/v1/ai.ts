@@ -1,13 +1,12 @@
 import { Router } from 'express';
-import { optionalAuth } from '../../middlewares/requireAuth';
+import { optionalAuth, requireAuth } from '../../middlewares/requireAuth';
 import * as aiController from '../../controllers/ai.controller';
 
 const router = Router();
 
 // Protect AI routes with optional authentication so landing page can use it
-router.use(optionalAuth);
-
-router.post('/chat', aiController.chatWithAI);
-router.post('/summarize-issue', aiController.summarizeIssue);
+router.post('/chat', optionalAuth, aiController.chatWithAI);
+router.post('/summarize-issue', requireAuth, aiController.summarizeIssue);
+router.post('/suggest-issue', requireAuth, aiController.suggestIssueDetails);
 
 export default router;

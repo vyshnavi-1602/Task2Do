@@ -7,6 +7,10 @@ import * as dashboardController from '../../controllers/dashboard.controller';
 import sprintRoutes from './sprint';
 import issueRoutes from './issue';
 import boardRoutes from './board';
+import milestoneRoutes from './milestone';
+import dependencyRoutes from './dependency';
+import analyticsRoutes from './analytics';
+import automationRoutes from './automation';
 
 const router = Router();
 
@@ -48,5 +52,9 @@ router.get('/:workspaceId/projects/:projectId/activity', requireWorkspaceMember(
 router.use('/:workspaceId/projects/:projectId/sprints', sprintRoutes);
 router.use('/:workspaceId/projects/:projectId/issues', issueRoutes);
 router.use('/:workspaceId/projects/:projectId/boards', boardRoutes);
+router.use('/:workspaceId/projects/:projectId/milestones', milestoneRoutes);
+router.use('/:workspaceId/projects/:projectId/dependencies', dependencyRoutes);
+router.use('/:workspaceId/projects/:projectId/analytics', analyticsRoutes);
+router.use('/:workspaceId/projects/:projectId/automations', automationRoutes);
 
 export default router;

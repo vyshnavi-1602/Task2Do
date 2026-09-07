@@ -6,6 +6,7 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 import { NotificationBell } from '../components/notifications/NotificationBell';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
+import { UserDropdown } from '../components/ui/UserDropdown';
 
 export default function WorkspaceLayout() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -91,6 +92,7 @@ export default function WorkspaceLayout() {
         <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', minHeight: '60px', gap: '16px' }}>
           <ThemeToggle />
           <NotificationBell />
+          <UserDropdown />
         </header>
         <div style={{ flex: 1, overflow: 'auto', padding: 'var(--space-8)' }}>
           <Outlet />

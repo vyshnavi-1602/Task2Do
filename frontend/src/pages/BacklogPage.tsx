@@ -42,13 +42,30 @@ export default function BacklogPage() {
   });
 
   const createIssue = useMutation({
-    mutationFn: async (title: string) => {
-      await apiClient.post(`/workspaces/${workspaceId}/projects/${projectId}/issues`, { title });
+    mutationFn: async (issueData: { title: string; description?: string; priority?: string; points?: number }) => {
+      await apiClient.post(`/workspaces/${workspaceId}/projects/${projectId}/issues`, issueData);
     },
     onSuccess: () => {
       setNewIssueTitle('');
       queryClient.invalidateQueries({ queryKey: ['issues', 'backlog', projectId] });
     },
+  });
+
+  const autoFillIssue = useMutation({
+    mutationFn: async (title: string) => {
+      const res = await apiClient.post(`/workspaces/${workspaceId}/projects/${projectId}/ai/suggest-issue`, { title });
+      return res.data?.data;
+    },
+    onSuccess: (suggestedData) => {
+      if (suggestedData && newIssueTitle) {
+        createIssue.mutate({ 
+          title: newIssueTitle, 
+          description: suggestedData.description, 
+          priority: suggestedData.priority || 'MEDIUM',
+          points: suggestedData.points || 0
+        });
+      }
+    }
   });
 
   const updateIssueSprint = useMutation({
@@ -77,7 +94,7 @@ export default function BacklogPage() {
       <div style={styles.issueKey}>{issue.key}</div>
       <div style={styles.issueTitle}>{issue.title}</div>
       <div style={styles.issueMeta}>
-        <span style={styles.badge}>{issue.status}</span>
+        <span style={styles.badge}>{issue.status?.title || 'To Do'}</span>
         <select 
           value={issue.sprintId || ''} 
           onChange={(e) => updateIssueSprint.mutate({ issueId: issue.id, sprintId: e.target.value || null })}
@@ -159,15 +176,22 @@ export default function BacklogPage() {
               onChange={(e) => setNewIssueTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && newIssueTitle) {
-                  createIssue.mutate(newIssueTitle);
+                  createIssue.mutate({ title: newIssueTitle });
                 }
               }}
               style={styles.transparentInput}
             />
             <button 
-              onClick={() => newIssueTitle && createIssue.mutate(newIssueTitle)}
+              onClick={() => newIssueTitle && autoFillIssue.mutate(newIssueTitle)}
+              style={{ ...styles.secondaryButton, borderColor: 'var(--accent-color)', color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '4px' }}
+              disabled={autoFillIssue.isPending || createIssue.isPending || !newIssueTitle}
+            >
+              {autoFillIssue.isPending ? <LoadingSpinner /> : '✨ AI Auto-fill'}
+            </button>
+            <button 
+              onClick={() => newIssueTitle && createIssue.mutate({ title: newIssueTitle })}
               style={styles.secondaryButton}
-              disabled={createIssue.isPending || !newIssueTitle}
+              disabled={createIssue.isPending || autoFillIssue.isPending || !newIssueTitle}
             >
               Create
             </button>

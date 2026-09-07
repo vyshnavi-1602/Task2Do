@@ -5,7 +5,7 @@ import { getIO } from '../socket';
 
 export const createIssue = asyncHandler(async (req: Request, res: Response) => {
   const { projectId } = req.params;
-  const { title, description, priority, type, points, parentIssueId, epicId, boardId } = req.body;
+  const { title, description, priority, type, points, parentIssueId, epicId, boardId, milestoneId, startDate, dueDate } = req.body;
   const reporterId = req.user!.id;
 
   if (!title) {
@@ -83,8 +83,11 @@ export const createIssue = asyncHandler(async (req: Request, res: Response) => {
         reporterId,
         parentIssueId,
         epicId,
+        milestoneId,
         boardId: targetBoardId,
         statusId: defaultColumn?.id,
+        startDate: startDate ? new Date(startDate) : null,
+        dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
   });
@@ -146,7 +149,7 @@ export const getIssue = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
   const { projectId, issueId } = req.params;
-  const { title, description, statusId, priority, type, points, assigneeId, sprintId, rank, parentIssueId, epicId, boardId } = req.body;
+  const { title, description, statusId, priority, type, points, assigneeId, sprintId, rank, parentIssueId, epicId, boardId, milestoneId, startDate, dueDate } = req.body;
   const userId = req.user!.id;
 
   const issue = await prisma.issue.findUnique({
@@ -336,6 +339,9 @@ export const updateIssue = asyncHandler(async (req: Request, res: Response) => {
         ...(newRank !== undefined && { rank: parseInt(newRank as string) }),
         ...(parentIssueId !== undefined && { parentIssueId }),
         ...(epicId !== undefined && { epicId }),
+        ...(milestoneId !== undefined && { milestoneId }),
+        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
+        ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
         version: { increment: 1 },
       },
       include: {

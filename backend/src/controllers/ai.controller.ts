@@ -71,7 +71,7 @@ STRICT RULES:
 
   try {
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         systemInstruction: contextStr,
@@ -145,7 +145,7 @@ export const summarizeIssue = asyncHandler(async (req: Request, res: Response) =
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         systemInstruction: "You are an expert technical project manager assistant. Summarize the issue clearly and concisely.",
@@ -163,6 +163,46 @@ export const summarizeIssue = asyncHandler(async (req: Request, res: Response) =
     return res.status(500).json({
       success: false,
       error: { message: 'Failed to generate summary.', details: error.message }
+    });
+  }
+});
+
+export const suggestIssueDetails = asyncHandler(async (req: Request, res: Response) => {
+  const { title } = req.body;
+
+  if (!title) {
+    return res.status(400).json({ success: false, error: { message: 'Issue title is required' } });
+  }
+
+  if (!ai) {
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+
+  const prompt = `Based on the following issue title, suggest a detailed description, priority (LOW, MEDIUM, HIGH, URGENT), and story points (1, 2, 3, 5, 8, 13) for the task.
+Title: "${title}"
+Return ONLY a valid JSON object matching exactly this schema: { "description": "string", "priority": "string", "points": number }`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.0-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: "You are an expert Agile project manager. Your job is to output strictly valid JSON and nothing else.",
+        responseMimeType: "application/json"
+      }
+    });
+
+    const result = JSON.parse(response.text || '{}');
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error: any) {
+    console.error('AI Suggestion Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: { message: 'Failed to generate suggestions.', details: error.message }
     });
   }
 });

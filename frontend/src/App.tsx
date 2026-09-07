@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import ProfilePage from './pages/ProfilePage';
 import HeroPage from './pages/HeroPage';
 import WorkspaceLayout from './pages/WorkspaceLayout';
 import WorkspaceDashboardPage from './pages/WorkspaceDashboardPage';
@@ -14,7 +15,11 @@ import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import ProjectLayout from './pages/ProjectLayout';
 import BacklogPage from './pages/BacklogPage';
 import BoardPage from './pages/BoardPage';
+import EpicsPage from './pages/EpicsPage';
+import MilestonesPage from './pages/MilestonesPage';
 import ProjectActivityPage from './pages/ProjectActivityPage';
+import ReportsPage from './pages/ReportsPage';
+import AutomationPage from './pages/AutomationPage';
 import { ChatWidget } from './components/chat/ChatWidget';
 
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -56,6 +61,15 @@ function App() {
                     } 
                   />
 
+                  <Route 
+                    path="/profile" 
+                    element={
+                      <ProtectedRoute>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    } 
+                  />
+
                   <Route
                     path="/workspaces/:workspaceId"
                     element={
@@ -83,7 +97,11 @@ function App() {
                     <Route index element={<Navigate to="backlog" replace />} />
                     <Route path="backlog" element={<BacklogPage />} />
                     <Route path="board" element={<BoardPage />} />
+                    <Route path="epics" element={<EpicsPage />} />
+                    <Route path="milestones" element={<MilestonesPage />} />
                     <Route path="activity" element={<ProjectActivityPage />} />
+                    <Route path="reports" element={<ReportsPage />} />
+                    <Route path="automations" element={<AutomationPage />} />
                   </Route>
                 </Routes>
                 <ChatWidget />

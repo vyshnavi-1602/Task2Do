@@ -6,6 +6,7 @@ import notificationRoutes from './notification';
 import activityRoutes from './activity';
 import aiRoutes from './ai';
 import attachmentRoutes from './attachments';
+import userRoutes from './user';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/activities', activityRoutes);
 router.use('/ai', aiRoutes);
 router.use('/attachments', attachmentRoutes);
+router.use('/user', userRoutes);
 
 // Future routes will be mounted here:
 // router.use('/auth', authRoutes);

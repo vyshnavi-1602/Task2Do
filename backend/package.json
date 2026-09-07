@@ -14,6 +14,7 @@
     "@google/genai": "^2.20.0",
     "@task2do/schema": "workspace:*",
     "axios": "^1.6.8",
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -29,6 +30,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/cookie": "^0.6.0",
     "@types/cookie-parser": "^1.4.10",

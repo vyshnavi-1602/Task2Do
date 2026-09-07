@@ -10,7 +10,7 @@ export const getWorkspaceDashboard = asyncHandler(async (req: Request, res: Resp
   const totalProjects = await prisma.project.count({ where: { workspaceId } });
   const completedIssuesCount = await prisma.issue.count({ where: { project: { workspaceId }, status: { title: 'Done' } } });
   const inProgressIssuesCount = await prisma.issue.count({ where: { project: { workspaceId }, status: { title: 'In Progress' } } });
-  const myTasksCount = await prisma.issue.count({ where: { project: { workspaceId }, assigneeId: userId } });
+  const myTasksCount = await prisma.issue.count({ where: { project: { workspaceId }, assigneeId: userId, status: { title: { not: 'Done' } } } });
 
   // 2. Active Sprint Summary
   const activeSprint = await prisma.sprint.findFirst({
@@ -69,14 +69,14 @@ export const getWorkspaceDashboard = asyncHandler(async (req: Request, res: Resp
   // 4. Tasks Summary Data
   const myTasks = await prisma.issue.findMany({
     where: { project: { workspaceId }, assigneeId: userId, status: { title: { not: 'Done' } } },
-    include: { project: { select: { id: true, key: true } } },
+    include: { project: { select: { id: true, key: true } }, status: true },
     orderBy: { updatedAt: 'desc' },
     take: 5
   });
 
   const inProgressTasks = await prisma.issue.findMany({
     where: { project: { workspaceId }, status: { title: 'In Progress' } },
-    include: { project: { select: { id: true, key: true } } },
+    include: { project: { select: { id: true, key: true } }, status: true },
     orderBy: { updatedAt: 'desc' },
     take: 5
   });
