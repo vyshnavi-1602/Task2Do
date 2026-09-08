@@ -25,7 +25,7 @@ export const createDependency = asyncHandler(async (req: Request, res: Response)
   // Check if dependency already exists
   const existing = await prisma.issueDependency.findUnique({
     where: {
-      blockIssueId_blockedIssueId: { blockIssueId, blockedIssueId },
+      blockedIssueId_blockingIssueId: { blockingIssueId: blockIssueId, blockedIssueId },
     },
   });
 
@@ -35,7 +35,7 @@ export const createDependency = asyncHandler(async (req: Request, res: Response)
 
   const dependency = await prisma.issueDependency.create({
     data: {
-      blockIssueId,
+      blockingIssueId: blockIssueId,
       blockedIssueId,
     },
   });
@@ -55,12 +55,12 @@ export const getDependencies = asyncHandler(async (req: Request, res: Response) 
   const blockedBy = await prisma.issueDependency.findMany({
     where: { blockedIssueId: issueId },
     include: {
-      blockIssue: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
+      blockingIssue: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
     },
   });
 
   const blocking = await prisma.issueDependency.findMany({
-    where: { blockIssueId: issueId },
+    where: { blockingIssueId: issueId },
     include: {
       blockedIssue: { select: { id: true, key: true, title: true, status: true, assignee: { select: { name: true } } } },
     },
@@ -75,7 +75,7 @@ export const removeDependency = asyncHandler(async (req: Request, res: Response)
   // Validate existence
   const existing = await prisma.issueDependency.findUnique({
     where: {
-      blockIssueId_blockedIssueId: { blockIssueId, blockedIssueId },
+      blockedIssueId_blockingIssueId: { blockingIssueId: blockIssueId, blockedIssueId },
     },
   });
 
@@ -85,7 +85,7 @@ export const removeDependency = asyncHandler(async (req: Request, res: Response)
 
   await prisma.issueDependency.delete({
     where: {
-      blockIssueId_blockedIssueId: { blockIssueId, blockedIssueId },
+      blockedIssueId_blockingIssueId: { blockingIssueId: blockIssueId, blockedIssueId },
     },
   });
 

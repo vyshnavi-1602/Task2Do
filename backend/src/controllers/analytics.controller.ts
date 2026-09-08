@@ -9,7 +9,7 @@ export const getVelocity = asyncHandler(async (req: Request, res: Response) => {
   const sprints = await prisma.sprint.findMany({
     where: { 
       projectId, 
-      status: 'COMPLETED' 
+      status: 'CLOSED'
     },
     include: {
       issues: {
@@ -27,7 +27,7 @@ export const getVelocity = asyncHandler(async (req: Request, res: Response) => {
     let completedPoints = 0;
     let totalPoints = 0;
 
-    sprint.issues.forEach(issue => {
+    sprint.issues.forEach((issue: any) => {
       if (issue.points) {
         totalPoints += issue.points;
         // Assuming DONE or COMPLETED means done. We use status.title or status.category if available.
