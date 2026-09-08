@@ -71,7 +71,7 @@ STRICT RULES:
 
   try {
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt,
       config: {
         systemInstruction: contextStr,
@@ -91,11 +91,11 @@ STRICT RULES:
     res.write('data: [DONE]\n\n');
     res.end();
   } catch (error: any) {
-    console.error('AI Chat Error:', error);
+    console.error('🔥 AI Chat Error Details:', error);
     if (!res.headersSent) {
       return res.status(500).json({
         success: false,
-        error: { message: 'Failed to communicate with AI service.', details: error.message }
+        error: { message: 'Failed to communicate with AI service.', details: error?.message || String(error) }
       });
     }
     res.end();
@@ -145,7 +145,7 @@ export const summarizeIssue = asyncHandler(async (req: Request, res: Response) =
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt,
       config: {
         systemInstruction: "You are an expert technical project manager assistant. Summarize the issue clearly and concisely.",
@@ -184,7 +184,7 @@ Return ONLY a valid JSON object matching exactly this schema: { "description": "
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.0-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt,
       config: {
         systemInstruction: "You are an expert Agile project manager. Your job is to output strictly valid JSON and nothing else.",

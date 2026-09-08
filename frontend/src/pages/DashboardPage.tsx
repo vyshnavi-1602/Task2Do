@@ -133,7 +133,15 @@ export default function DashboardPage() {
           <div style={currentStyles.sidebarItemActive}>
             <span style={{marginRight: '8px'}}>📁</span> Workspaces
           </div>
-
+          
+          <div style={{ marginTop: 'auto' }}>
+            <div 
+              style={{...currentStyles.sidebarItem, opacity: 0.8 }}
+              onClick={() => navigate('/')}
+            >
+              <span style={{marginRight: '8px'}}>←</span> Back to home
+            </div>
+          </div>
         </aside>
 
         {/* Content Area */}

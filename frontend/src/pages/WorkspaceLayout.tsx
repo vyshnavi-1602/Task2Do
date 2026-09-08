@@ -84,7 +84,7 @@ export default function WorkspaceLayout() {
         </nav>
 
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <Link to="/" style={styles.backLink}>← Back to Dashboard</Link>
+          <Link to="/dashboard" style={styles.backLink}>← Back to Workspaces</Link>
         </div>
       </aside>
 

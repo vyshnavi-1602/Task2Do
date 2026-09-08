@@ -569,6 +569,60 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
             </div>
 
             <div className="sidebar-section">
+              <div className="sidebar-label">Start Date</div>
+              <div className="sidebar-value">
+                {userRole !== 'VIEWER' ? (
+                  <input
+                    type="date"
+                    style={{
+                      width: '100%',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem'
+                    }}
+                    value={issue.startDate ? new Date(issue.startDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => {
+                      updateIssueMutation.mutate({ startDate: e.target.value || null });
+                    }}
+                    disabled={updateIssueMutation.isPending}
+                  />
+                ) : (
+                  issue.startDate ? new Date(issue.startDate).toLocaleDateString() : '--'
+                )}
+              </div>
+            </div>
+
+            <div className="sidebar-section">
+              <div className="sidebar-label">Due Date</div>
+              <div className="sidebar-value">
+                {userRole !== 'VIEWER' ? (
+                  <input
+                    type="date"
+                    style={{
+                      width: '100%',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem'
+                    }}
+                    value={issue.dueDate ? new Date(issue.dueDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => {
+                      updateIssueMutation.mutate({ dueDate: e.target.value || null });
+                    }}
+                    disabled={updateIssueMutation.isPending}
+                  />
+                ) : (
+                  issue.dueDate ? new Date(issue.dueDate).toLocaleDateString() : '--'
+                )}
+              </div>
+            </div>
+
+            <div className="sidebar-section">
               <div className="sidebar-label">Created</div>
               <div className="sidebar-value" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                 {new Date(issue.createdAt).toLocaleString()}

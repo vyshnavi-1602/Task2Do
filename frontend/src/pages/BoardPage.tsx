@@ -68,8 +68,8 @@ export default function BoardPage() {
 
   // Optimistic update mutation
   const updateIssueMutation = useMutation({
-    mutationFn: async ({ issueId, status, rank }: { issueId: string; status: string; rank: number }) => {
-      return apiClient.patch(`/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}`, { status, rank });
+    mutationFn: async ({ issueId, statusId, rank }: { issueId: string; statusId: string; rank: number }) => {
+      return apiClient.patch(`/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}`, { statusId, rank });
     },
     onMutate: async () => {
       // Cancel any outgoing refetches so they don't overwrite our optimistic update
@@ -109,10 +109,10 @@ export default function BoardPage() {
     if (activeId === overId) return;
 
     // Find columns
-    const sourceStatus = active.data.current?.issue?.status;
+    const sourceStatus = active.data.current?.issue?.statusId || (typeof active.data.current?.issue?.status === 'string' ? active.data.current?.issue?.status : active.data.current?.issue?.status?.id);
     
     // Find target column and rank
-    const targetStatus = over.data.current?.column?.id || over.data.current?.issue?.status;
+    const targetStatus = over.data.current?.column?.id || over.data.current?.issue?.statusId || (typeof over.data.current?.issue?.status === 'string' ? over.data.current?.issue?.status : over.data.current?.issue?.status?.id);
     
     if (!sourceStatus || !targetStatus) return;
 
