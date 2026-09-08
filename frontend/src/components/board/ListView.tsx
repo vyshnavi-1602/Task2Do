@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 interface ListViewProps {
   boardData: any;
@@ -8,7 +7,7 @@ interface ListViewProps {
   onIssueClick: (issueId: string) => void;
 }
 
-export const ListView: React.FC<ListViewProps> = ({ boardData, workspaceId, projectId, onIssueClick }) => {
+export const ListView: React.FC<ListViewProps> = ({ boardData, onIssueClick }) => {
   if (!boardData?.columns) return <div style={{ padding: '24px' }}>Loading list...</div>;
 
   const allIssues = boardData.columns.flatMap((col: any) => col.issues || []);

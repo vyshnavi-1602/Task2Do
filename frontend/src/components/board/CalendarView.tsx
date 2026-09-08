@@ -28,8 +28,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ boardData, onIssueCl
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = new Date(year, month, d).toISOString().split('T')[0];
-    
     // Find issues that fall on this day (using dueDate or startDate for simplicity)
     const dayIssues = allIssues.filter((issue: any) => {
       if (!issue.dueDate && !issue.startDate) return false;

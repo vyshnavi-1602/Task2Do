@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 export default function MilestonesPage() {
   const { workspaceId, projectId } = useParams();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  useAuth(); // keep hook call if needed for auth side effects, though it's likely unused completely. Let's just remove the destructuring.
   
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
