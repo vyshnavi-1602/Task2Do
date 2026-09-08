@@ -98,7 +98,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ boardData, onIssueCl
                     left: `${leftOffset + 4}px`,
                     width: `${width - 8}px`,
                     height: '28px',
-                    backgroundColor: 'var(--primary-color)',
+                    backgroundColor: '#0052cc', // Use a distinct blue color
                     borderRadius: '4px',
                     cursor: 'pointer',
                     display: 'flex',
