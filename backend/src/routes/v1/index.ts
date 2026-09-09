@@ -7,6 +7,7 @@ import activityRoutes from './activity';
 import aiRoutes from './ai';
 import attachmentRoutes from './attachments';
 import userRoutes from './user';
+import searchRoutes from './search.routes';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use('/activities', activityRoutes);
 router.use('/ai', aiRoutes);
 router.use('/attachments', attachmentRoutes);
 router.use('/user', userRoutes);
+router.use('/search', searchRoutes);
 
 // Future routes will be mounted here:
 // router.use('/auth', authRoutes);

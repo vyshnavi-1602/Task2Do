@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { globalSearch } from '../../controllers/search.controller';
+import { requireAuth } from '../../middlewares/requireAuth';
+
+const router = Router();
+
+router.use(requireAuth);
+
+router.get('/', globalSearch);
+
+export default router;

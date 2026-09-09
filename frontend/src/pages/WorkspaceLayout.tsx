@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import { NotificationBell } from '../components/notifications/NotificationBell';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { UserDropdown } from '../components/ui/UserDropdown';
+import { CommandPalette } from '../components/CommandPalette';
+import { Search } from 'lucide-react';
 
 export default function WorkspaceLayout() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -90,12 +92,20 @@ export default function WorkspaceLayout() {
 
       <main style={{ ...styles.main, display: 'flex', flexDirection: 'column', padding: 0 }}>
         <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', padding: '12px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface-color)', minHeight: '60px', gap: '16px' }}>
+          <div 
+            style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '6px 12px', maxWidth: '300px', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+          >
+            <Search size={16} style={{ marginRight: '8px' }} />
+            <span style={{ fontSize: '0.9rem' }}>Search... (Ctrl+K)</span>
+          </div>
           <ThemeToggle />
           <NotificationBell />
           <UserDropdown />
         </header>
         <div style={{ flex: 1, overflow: 'auto', padding: 'var(--space-8)' }}>
           <Outlet />
+          <CommandPalette />
         </div>
       </main>
     </div>

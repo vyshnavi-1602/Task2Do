@@ -33,9 +33,21 @@ export default function BoardPage() {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'board' | 'list' | 'calendar' | 'timeline'>('board');
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [onlyMyIssues, setOnlyMyIssues] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [onlyMyIssues, setOnlyMyIssues] = useState(searchParams.get('me') === 'true');
+  const [priorityFilter, setPriorityFilter] = useState(searchParams.get('priority') || '');
   const { user } = useAuth();
+
+  // Sync state to URL
+  const updateSearchParams = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+    setSearchParams(newParams);
+  };
 
   useProjectSocket(projectId as string);
 
@@ -193,6 +205,9 @@ export default function BoardPage() {
     if (onlyMyIssues && user) {
       filtered = filtered.filter((i) => i.assignee?.id === user.id);
     }
+    if (priorityFilter) {
+      filtered = filtered.filter((i) => i.priority === priorityFilter);
+    }
     return filtered;
   };
 
@@ -200,9 +215,11 @@ export default function BoardPage() {
     <div className="board-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <BoardFilters 
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        setSearchQuery={(val) => { setSearchQuery(val); updateSearchParams('q', val); }}
         onlyMyIssues={onlyMyIssues}
-        onOnlyMyIssuesChange={setOnlyMyIssues}
+        onOnlyMyIssuesChange={(val) => { setOnlyMyIssues(val); updateSearchParams('me', val ? 'true' : ''); }}
+        priorityFilter={priorityFilter}
+        setPriorityFilter={(val) => { setPriorityFilter(val); updateSearchParams('priority', val); }}
       />
       <div style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <select 
