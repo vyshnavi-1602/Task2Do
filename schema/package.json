@@ -2,9 +2,10 @@
   "name": "@task2do/schema",
   "version": "1.0.0",
   "private": true,
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "echo 'Schema building...'",
+    "build": "prisma generate && tsc",
     "test": "echo 'Schema testing...'",
     "postinstall": "prisma generate",
     "generate": "prisma generate"
@@ -12,7 +13,7 @@
   "devDependencies": {
     "@types/node": "^26.4.0",
     "prisma": "5.22.0",
-    "typescript": "^7.0.2"
+    "typescript": "^5.0.0"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0"
