@@ -80,7 +80,8 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
   // 3. Fetch Activity
   const { data: activityRes } = useQuery<any>({
     queryKey: ['activity', projectId, issueId],
-    queryFn: () => apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}/activity`)
+    queryFn: () => apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}/activity`),
+    enabled: userRole === 'ADMIN'
   });
 
   // 4. Fetch Workspace Members for Mentions
@@ -175,6 +176,24 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
       // Invalidate backlog or board to refresh assignee avatar there too
       queryClient.invalidateQueries({ queryKey: ['issues', 'backlog', projectId] });
     }
+  });
+
+  const { data: projectLabelsRes } = useQuery<any>({
+    queryKey: ['projectLabels', projectId],
+    queryFn: () => apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/labels`)
+  });
+  const projectLabels = projectLabelsRes?.data || [];
+
+  const addLabelMutation = useMutation({
+    mutationFn: (payload: { labelId?: string, name?: string, color?: string }) => 
+      apiClient.post(`/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}/labels`, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['issue', projectId, issueId] })
+  });
+
+  const removeLabelMutation = useMutation({
+    mutationFn: (labelId: string) => 
+      apiClient.delete(`/workspaces/${workspaceId}/projects/${projectId}/issues/${issueId}/labels/${labelId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['issue', projectId, issueId] })
   });
 
   if (issueLoading) {
@@ -504,6 +523,68 @@ export function IssueDetailsModal({ issueId, projectId, workspaceId, onClose, us
                   </select>
                 ) : (
                   issue.status?.title || 'Unknown'
+                )}
+              </div>
+            </div>
+
+            <div className="sidebar-section">
+              <div className="sidebar-label">Labels</div>
+              <div className="sidebar-value">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
+                  {issue.labels?.map((lbl: any) => (
+                    <span key={lbl.id} style={{ 
+                      backgroundColor: lbl.color || '#0052cc', 
+                      color: '#fff', 
+                      padding: '2px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '12px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      {lbl.name}
+                      {userRole !== 'VIEWER' && (
+                        <button 
+                          onClick={() => removeLabelMutation.mutate(lbl.id)}
+                          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, fontSize: '10px', marginLeft: '4px' }}
+                        >&times;</button>
+                      )}
+                    </span>
+                  ))}
+                  {(!issue.labels || issue.labels.length === 0) && (
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>None</span>
+                  )}
+                </div>
+                {userRole !== 'VIEWER' && (
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-color)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.875rem'
+                    }}
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value === 'NEW') {
+                        const name = prompt("Enter new label name:");
+                        if (name) {
+                          addLabelMutation.mutate({ name });
+                        }
+                      } else if (e.target.value) {
+                        addLabelMutation.mutate({ labelId: e.target.value });
+                      }
+                    }}
+                    disabled={addLabelMutation.isPending}
+                  >
+                    <option value="" disabled>+ Add Label</option>
+                    {projectLabels.map((lbl: any) => (
+                      <option key={lbl.id} value={lbl.id}>{lbl.name}</option>
+                    ))}
+                    <option value="NEW">+ Create New Label</option>
+                  </select>
                 )}
               </div>
             </div>

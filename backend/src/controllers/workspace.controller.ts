@@ -120,6 +120,17 @@ export const addMember = asyncHandler(async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, error: { message: 'Email is required' } });
   }
 
+  // Enforce same email domain requirement
+  const requester = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (requester) {
+    const requesterDomain = requester.email.split('@')[1];
+    const targetDomain = email.split('@')[1];
+
+    if (requesterDomain !== targetDomain) {
+      return res.status(403).json({ success: false, error: { message: 'User must have the same email domain to be added to this workspace' } });
+    }
+  }
+
   const userToAdd = await prisma.user.findUnique({ where: { email } });
   if (!userToAdd) {
     return res.status(404).json({ success: false, error: { message: 'User with this email not found' } });

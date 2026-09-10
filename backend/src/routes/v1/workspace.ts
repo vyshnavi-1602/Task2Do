@@ -46,9 +46,13 @@ router.patch('/:workspaceId/projects/:projectId', requireWorkspaceMember('ADMIN'
 // Delete project (ADMIN only)
 router.delete('/:workspaceId/projects/:projectId', requireWorkspaceMember('ADMIN'), projectController.deleteProject);
 
+// Project Labels (VIEWER+ for GET, MEMBER+ for POST)
+router.get('/:workspaceId/projects/:projectId/labels', requireWorkspaceMember('VIEWER'), projectController.getProjectLabels);
+router.post('/:workspaceId/projects/:projectId/labels', requireWorkspaceMember('MEMBER'), projectController.createProjectLabel);
+
 // === SPRINTS & ISSUES (Nested under Project) ===
 router.get('/:workspaceId/projects/:projectId/board', requireWorkspaceMember('VIEWER'), projectController.getBoard);
-router.get('/:workspaceId/projects/:projectId/activity', requireWorkspaceMember('VIEWER'), projectController.getProjectActivity);
+router.get('/:workspaceId/projects/:projectId/activity', requireWorkspaceMember('ADMIN'), projectController.getProjectActivity);
 router.use('/:workspaceId/projects/:projectId/sprints', sprintRoutes);
 router.use('/:workspaceId/projects/:projectId/issues', issueRoutes);
 router.use('/:workspaceId/projects/:projectId/boards', boardRoutes);

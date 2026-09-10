@@ -25,9 +25,13 @@ export default function ProjectActivityPage() {
   }
 
   if (error) {
+    const isForbidden = (error as any)?.response?.status === 403 || (error as any)?.status === 403;
+    
     return (
       <div style={{ padding: '2rem', color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: '8px' }}>
-        Failed to load project activity. Please try again later.
+        {isForbidden 
+          ? "You don't have permission to view project activity. Only workspace admins can view this page to evaluate team performance." 
+          : "Failed to load project activity. Please try again later."}
       </div>
     );
   }

@@ -13,6 +13,10 @@ router.get('/:issueId', requireWorkspaceMember('VIEWER'), issueController.getIss
 router.patch('/:issueId', requireWorkspaceMember('MEMBER'), issueController.updateIssue);
 router.delete('/:issueId', requireWorkspaceMember('ADMIN'), issueController.deleteIssue);
 
+// Issue Label Routes
+router.post('/:issueId/labels', requireWorkspaceMember('MEMBER'), issueController.addIssueLabel);
+router.delete('/:issueId/labels/:labelId', requireWorkspaceMember('MEMBER'), issueController.removeIssueLabel);
+
 // Comment Routes
 router.post('/:issueId/comments', requireWorkspaceMember('VIEWER'), commentController.createComment);
 router.get('/:issueId/comments', requireWorkspaceMember('VIEWER'), commentController.getComments);
@@ -21,6 +25,6 @@ router.put('/:issueId/comments/:commentId', requireWorkspaceMember('VIEWER'), co
 router.delete('/:issueId/comments/:commentId', requireWorkspaceMember('VIEWER'), commentController.deleteComment);
 
 // Activity Routes
-router.get('/:issueId/activity', requireWorkspaceMember('VIEWER'), activityController.getIssueActivity);
+router.get('/:issueId/activity', requireWorkspaceMember('ADMIN'), activityController.getIssueActivity);
 
 export default router;

@@ -137,6 +137,7 @@ export const getIssue = asyncHandler(async (req: Request, res: Response) => {
       epicIssues: { select: { id: true, statusId: true } },
       status: true,
       attachments: true,
+      labels: true,
     },
   });
 
@@ -376,4 +377,52 @@ export const deleteIssue = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(200).json({ success: true, data: { message: 'Issue deleted' } });
 });
-// trigger reload
+
+export const addIssueLabel = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId, issueId } = req.params;
+  const { labelId, name, color } = req.body;
+
+  let label;
+
+  if (labelId) {
+    label = await prisma.issueLabel.findUnique({ where: { id: labelId } });
+  } else if (name) {
+    label = await prisma.issueLabel.upsert({
+      where: { projectId_name: { projectId, name } },
+      update: {},
+      create: { name, color: color || '#0052cc', projectId }
+    });
+  }
+
+  if (!label) {
+    return res.status(400).json({ success: false, error: { message: 'Label ID or Name is required' } });
+  }
+
+  const updatedIssue = await prisma.issue.update({
+    where: { id: issueId },
+    data: {
+      labels: {
+        connect: { id: label.id }
+      }
+    },
+    include: { labels: true }
+  });
+
+  res.status(200).json({ success: true, data: updatedIssue });
+});
+
+export const removeIssueLabel = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId, issueId, labelId } = req.params;
+
+  const updatedIssue = await prisma.issue.update({
+    where: { id: issueId },
+    data: {
+      labels: {
+        disconnect: { id: labelId }
+      }
+    },
+    include: { labels: true }
+  });
+
+  res.status(200).json({ success: true, data: updatedIssue });
+});

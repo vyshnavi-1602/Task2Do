@@ -263,3 +263,43 @@ export const getProjectActivity = asyncHandler(async (req: Request, res: Respons
     data: activities
   });
 });
+
+export const getProjectLabels = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params;
+
+  const labels = await prisma.issueLabel.findMany({
+    where: { projectId },
+    orderBy: { name: 'asc' }
+  });
+
+  res.status(200).json({ success: true, data: labels });
+});
+
+export const createProjectLabel = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params;
+  const { name, color } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ success: false, error: { message: 'Label name is required' } });
+  }
+
+  const existing = await prisma.issueLabel.findUnique({
+    where: {
+      projectId_name: { projectId, name }
+    }
+  });
+
+  if (existing) {
+    return res.status(409).json({ success: false, error: { message: 'Label already exists in this project' } });
+  }
+
+  const label = await prisma.issueLabel.create({
+    data: {
+      name,
+      color: color || '#0052cc',
+      projectId
+    }
+  });
+
+  res.status(201).json({ success: true, data: label });
+});
