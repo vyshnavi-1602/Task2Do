@@ -11,6 +11,9 @@ import { notFoundMiddleware } from './middlewares/not-found.middleware';
 
 const app: Express = express();
 
+// Trust proxy for Render deployment
+app.set('trust proxy', 1);
+
 // Security and utility middlewares
 app.use(helmet());
 app.use(cookieParser());
