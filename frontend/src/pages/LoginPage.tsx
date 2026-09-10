@@ -339,7 +339,7 @@ const getStyles = (isMobile: boolean): Record<string, React.CSSProperties> => ({
     padding: '0.875rem 1rem 0.875rem 2.75rem',
     borderRadius: '12px',
     border: '1px solid var(--border-color)',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'var(--bg-color)',
     color: 'var(--text-primary)',
     fontSize: '0.95rem',
     transition: 'border-color 0.2s',
