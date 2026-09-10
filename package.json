@@ -23,7 +23,9 @@
       "bcrypt",
       "esbuild",
       "prisma",
-      "protobufjs"
+      "protobufjs",
+      "@google/genai",
+      "esbuild"
     ]
   }
 }
