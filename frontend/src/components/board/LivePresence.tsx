@@ -32,17 +32,44 @@ export const LivePresence: React.FC = () => {
   if (activeUsers.length === 0) return null;
 
   return (
-    <div className="flex items-center -space-x-2">
+    <div style={{ display: 'flex', alignItems: 'center', marginLeft: '-8px' }}>
       {activeUsers.map((user) => (
         <div
           key={user.userId}
-          className="relative inline-block h-8 w-8 rounded-full ring-2 ring-background overflow-hidden bg-muted flex-shrink-0"
+          style={{
+            position: 'relative',
+            display: 'inline-block',
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            backgroundColor: 'var(--accent-color)',
+            flexShrink: 0,
+            border: '2px solid var(--surface-color)',
+            marginLeft: '-8px'
+          }}
           title={user.name}
         >
           {user.avatarUrl ? (
-            <img src={user.avatarUrl} alt={user.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+            <img 
+              src={user.avatarUrl} 
+              alt={user.name} 
+              style={{ height: '100%', width: '100%', objectFit: 'cover' }} 
+              referrerPolicy="no-referrer" 
+            />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground text-xs font-medium uppercase">
+            <div style={{
+              display: 'flex',
+              height: '100%',
+              width: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'var(--text-secondary)',
+              color: '#ffffff',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              textTransform: 'uppercase'
+            }}>
               {user.name.charAt(0)}
             </div>
           )}

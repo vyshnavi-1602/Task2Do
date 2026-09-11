@@ -161,3 +161,18 @@
   align-self: flex-start;
   padding: var(--space-2);
 }
+
+@media (max-width: 480px) {
+  .chat-widget-container {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+    align-items: center;
+  }
+  
+  .chat-widget-window {
+    width: 100%;
+    max-width: none;
+    height: 60vh;
+  }
+}
