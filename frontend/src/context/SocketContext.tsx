@@ -10,13 +10,15 @@ const SocketContext = createContext<SocketContextType>({ socket: null, isConnect
 
 export const useSocket = () => useContext(SocketContext);
 
+import { env } from '../config/env';
+
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     // Determine the socket URL based on environment
-    const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const socketUrl = import.meta.env.VITE_API_URL || env.API_BASE_URL.replace(/\/api\/v1\/?$/, '') || 'http://localhost:5000';
     
     const socketInstance = io(socketUrl, {
       withCredentials: true,
