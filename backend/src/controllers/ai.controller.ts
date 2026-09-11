@@ -71,7 +71,7 @@ STRICT RULES:
 
   try {
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         systemInstruction: contextStr,
@@ -145,7 +145,7 @@ export const summarizeIssue = asyncHandler(async (req: Request, res: Response) =
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         systemInstruction: "You are an expert technical project manager assistant. Summarize the issue clearly and concisely.",
@@ -184,7 +184,7 @@ Return ONLY a valid JSON object matching exactly this schema: { "description": "
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         systemInstruction: "You are an expert Agile project manager. Your job is to output strictly valid JSON and nothing else.",
