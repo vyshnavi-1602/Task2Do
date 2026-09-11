@@ -9,12 +9,15 @@ import { OAuth2Client } from 'google-auth-library';
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 // Cookie options helper
-const getCookieOptions = () => ({
-  httpOnly: true,
-  secure: env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-});
+const getCookieOptions = () => {
+  const isProd = env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+};
 
 // Helper to strip sensitive data
 const sanitizeUser = (user: any) => {
