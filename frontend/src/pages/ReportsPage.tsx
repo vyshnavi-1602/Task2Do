@@ -24,6 +24,15 @@ export default function ReportsPage() {
     enabled: !!workspaceId && !!projectId,
   });
 
+  const { data: performanceRes } = useQuery({
+    queryKey: ['analytics', 'member-performance', projectId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/analytics/member-performance`);
+      return res.data?.data || [];
+    },
+    enabled: !!workspaceId && !!projectId,
+  });
+
   const avgVelocity = velocityRes?.length > 0 
     ? Math.round(velocityRes.reduce((acc: number, cur: any) => acc + cur.completedPoints, 0) / velocityRes.length) 
     : 0;
@@ -62,7 +71,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--surface-color)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      <div className="bg-white p-6 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--surface-color)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '32px' }}>
         <h3 className="text-lg font-bold mb-4" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Velocity History</h3>
         <div className="h-96 w-full" style={{ height: '400px', width: '100%' }}>
           {velocityRes && velocityRes.length > 0 ? (
@@ -80,6 +89,29 @@ export default function ReportsPage() {
           ) : (
             <div className="flex items-center justify-center h-full w-full text-gray-500 text-sm font-medium" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--text-secondary)' }}>
               No velocity data available
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--surface-color)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <h3 className="text-lg font-bold mb-4" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Member Performance</h3>
+        <div className="h-96 w-full" style={{ height: '400px', width: '100%' }}>
+          {performanceRes && performanceRes.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={performanceRes}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="assigneeName" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="completedIssues" fill="#36B37E" name="Completed Issues" />
+                <Bar dataKey="completedPoints" fill="#0052cc" name="Completed Points" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full w-full text-gray-500 text-sm font-medium" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--text-secondary)' }}>
+              No member performance data available
             </div>
           )}
         </div>

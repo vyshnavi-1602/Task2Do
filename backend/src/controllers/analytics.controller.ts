@@ -48,3 +48,45 @@ export const getVelocity = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(200).json({ success: true, data: velocityData });
 });
+
+export const getMemberPerformance = asyncHandler(async (req: Request, res: Response) => {
+  const { projectId } = req.params;
+
+  // Find all issues in the project
+  const issues = await prisma.issue.findMany({
+    where: { projectId },
+    include: {
+      status: true,
+      assignee: true,
+    }
+  });
+
+  const performanceMap: Record<string, { assigneeName: string; completedIssues: number; completedPoints: number }> = {};
+
+  issues.forEach(issue => {
+    // Only count assigned issues
+    if (issue.assigneeId && issue.assignee) {
+      const isCompleted = issue.status?.title.toLowerCase().includes('done') || issue.status?.title.toLowerCase().includes('completed');
+      
+      if (!performanceMap[issue.assigneeId]) {
+        performanceMap[issue.assigneeId] = {
+          assigneeName: issue.assignee.name || 'Unknown',
+          completedIssues: 0,
+          completedPoints: 0,
+        };
+      }
+
+      if (isCompleted) {
+        performanceMap[issue.assigneeId].completedIssues += 1;
+        performanceMap[issue.assigneeId].completedPoints += (issue.points || 0);
+      }
+    }
+  });
+
+  const performanceData = Object.values(performanceMap).filter(data => data.completedIssues > 0 || data.completedPoints > 0);
+
+  // Sort by completed points descending
+  performanceData.sort((a, b) => b.completedPoints - a.completedPoints);
+
+  res.status(200).json({ success: true, data: performanceData });
+});
