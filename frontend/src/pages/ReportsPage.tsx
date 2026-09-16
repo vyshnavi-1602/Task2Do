@@ -10,7 +10,7 @@ export default function ReportsPage() {
     queryKey: ['sprint-metrics', projectId],
     queryFn: async () => {
       const res = await apiClient.get(`/workspaces/${workspaceId}/projects/${projectId}/sprints/active/metrics`);
-      return res.data;
+      return res.data?.data || [];
     },
     enabled: !!workspaceId && !!projectId,
   });
@@ -42,34 +42,46 @@ export default function ReportsPage() {
       <div className="bg-white p-6 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--surface-color)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '32px' }}>
         <h3 className="text-lg font-bold mb-4" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Active Sprint Burndown</h3>
         <div className="h-96 w-full" style={{ height: '400px', width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={metrics || []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="ideal" stroke="#9ca3af" strokeWidth={2} name="Ideal Guideline" strokeDasharray="5 5" />
-              <Line type="monotone" dataKey="actual" stroke="#0ea5e9" strokeWidth={3} name="Actual Remaining" />
-            </LineChart>
-          </ResponsiveContainer>
+          {metrics && metrics.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={metrics}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="ideal" stroke="#9ca3af" strokeWidth={2} name="Ideal Guideline" strokeDasharray="5 5" />
+                <Line type="monotone" dataKey="actual" stroke="#0ea5e9" strokeWidth={3} name="Actual Remaining" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full w-full text-gray-500 text-sm font-medium" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--text-secondary)' }}>
+              No active sprint data available
+            </div>
+          )}
         </div>
       </div>
 
       <div className="bg-white p-6 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--surface-color)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <h3 className="text-lg font-bold mb-4" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Velocity History</h3>
         <div className="h-96 w-full" style={{ height: '400px', width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={velocityRes || []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="sprintName" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="totalPoints" fill="#dfe1e6" name="Committed" />
-              <Bar dataKey="completedPoints" fill="#0052cc" name="Completed" />
-            </BarChart>
-          </ResponsiveContainer>
+          {velocityRes && velocityRes.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={velocityRes}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="sprintName" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="totalPoints" fill="#dfe1e6" name="Committed" />
+                <Bar dataKey="completedPoints" fill="#0052cc" name="Completed" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full w-full text-gray-500 text-sm font-medium" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--text-secondary)' }}>
+              No velocity data available
+            </div>
+          )}
         </div>
       </div>
     </div>
