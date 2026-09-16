@@ -13,6 +13,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1),
   JWT_EXPIRES_IN: z.string().min(1),
   GOOGLE_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_REDIRECT_URI: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

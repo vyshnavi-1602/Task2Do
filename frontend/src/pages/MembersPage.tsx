@@ -92,13 +92,22 @@ export default function MembersPage() {
       {error && <div style={styles.error}>Failed to load members.</div>}
       
       {inviteMutation.isError && (
-        <div style={styles.errorAlert}>{(inviteMutation.error as any)?.response?.data?.error?.message || 'Failed to add member.'}</div>
+        <div style={styles.errorAlert}>
+          {(inviteMutation.error?.message === 'User must have the same email domain to be added to this workspace') ? (
+            <div>
+              <strong>Security Policy Enforced:</strong> You can only invite users who share the same email domain as you. 
+              Please ensure the person logs in with their correct corporate credentials.
+            </div>
+          ) : (
+            inviteMutation.error?.message || 'Failed to add member.'
+          )}
+        </div>
       )}
       {updateRoleMutation.isError && (
-        <div style={styles.errorAlert}>{(updateRoleMutation.error as any)?.response?.data?.error?.message || 'Failed to update role.'}</div>
+        <div style={styles.errorAlert}>{updateRoleMutation.error?.message || 'Failed to update role.'}</div>
       )}
       {removeMutation.isError && (
-        <div style={styles.errorAlert}>{(removeMutation.error as any)?.response?.data?.error?.message || 'Failed to remove member.'}</div>
+        <div style={styles.errorAlert}>{removeMutation.error?.message || 'Failed to remove member.'}</div>
       )}
 
       {isInviting && (

@@ -8,6 +8,7 @@ import aiRoutes from './ai';
 import attachmentRoutes from './attachments';
 import userRoutes from './user';
 import searchRoutes from './search.routes';
+import githubRoutes from './github';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.use('/ai', aiRoutes);
 router.use('/attachments', attachmentRoutes);
 router.use('/user', userRoutes);
 router.use('/search', searchRoutes);
+router.use('/github', githubRoutes);
 
 // Future routes will be mounted here:
 // router.use('/auth', authRoutes);

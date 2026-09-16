@@ -62,6 +62,18 @@ export default function WorkspaceSettingsPage() {
     return <LoadingSpinner />;
   }
 
+  const handleConnectGitHub = async () => {
+    try {
+      const res = await apiClient.get(`/github/connect?workspaceId=${workspaceId}`) as any;
+      if (res.url) {
+        window.location.href = res.url;
+      }
+    } catch (err) {
+      console.error('Failed to connect GitHub', err);
+      alert('Failed to connect to GitHub. See console for details.');
+    }
+  };
+
   const myMemberInfo = members?.find((m) => m.user.id === user?.id);
   const isAdmin = myMemberInfo?.role === 'ADMIN';
 
@@ -74,13 +86,47 @@ export default function WorkspaceSettingsPage() {
           <p style={{ color: 'var(--text-secondary)' }}>You do not have permission to modify settings for this workspace. Only Admins can perform these actions.</p>
         </div>
       ) : (
-        <div style={{ 
-          padding: 'var(--space-6)', 
-          backgroundColor: 'var(--surface-color)', 
-          borderRadius: 'var(--radius-lg)', 
-          border: '1px solid var(--danger-color)',
-          marginTop: 'var(--space-8)'
-        }}>
+        <>
+          <div style={{ 
+            padding: 'var(--space-6)', 
+            backgroundColor: 'var(--surface-color)', 
+            borderRadius: 'var(--radius-lg)', 
+            border: '1px solid var(--border-color)',
+            marginTop: 'var(--space-8)'
+          }}>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>Integrations</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+              Connect your workspace to external services for automation.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-4)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-color)' }}>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px' }}>GitHub Integration</strong>
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Automatically mark tasks as completed when PRs are merged.</span>
+              </div>
+              <button 
+                onClick={handleConnectGitHub}
+                style={{
+                  padding: 'var(--space-2) var(--space-4)',
+                  backgroundColor: '#24292e',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Connect GitHub
+              </button>
+            </div>
+          </div>
+
+          <div style={{ 
+            padding: 'var(--space-6)', 
+            backgroundColor: 'var(--surface-color)', 
+            borderRadius: 'var(--radius-lg)', 
+            border: '1px solid var(--danger-color)',
+            marginTop: 'var(--space-8)'
+          }}>
           <h2 style={{ fontSize: '1.25rem', color: 'var(--danger-color)', marginBottom: 'var(--space-2)' }}>Danger Zone</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
             Deleting a workspace will permanently delete all of its projects, sprints, issues, and comments. This action cannot be undone.
@@ -133,6 +179,7 @@ export default function WorkspaceSettingsPage() {
             </button>
           </form>
         </div>
+        </>
       )}
     </div>
   );
