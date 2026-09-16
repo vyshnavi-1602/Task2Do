@@ -119,17 +119,18 @@ export const getActiveSprintMetrics = asyncHandler(async (req: Request, res: Res
     }
   });
 
-  if (!activeSprint || !activeSprint.startDate || !activeSprint.endDate) {
+  if (!activeSprint) {
     return res.status(200).json({ success: true, data: [] });
   }
 
+  const start = activeSprint.startDate ? new Date(activeSprint.startDate) : new Date();
+  const end = activeSprint.endDate ? new Date(activeSprint.endDate) : new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+  
   const totalPoints = activeSprint.issues.reduce((sum, issue) => sum + (issue.points || 1), 0);
   const remainingIssues = activeSprint.issues.filter(i => i.status?.title !== 'Done');
   const currentRemainingPoints = remainingIssues.reduce((sum, issue) => sum + (issue.points || 1), 0);
 
   // Generate days array
-  const start = new Date(activeSprint.startDate);
-  const end = new Date(activeSprint.endDate);
   const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
   
   const metrics = [];

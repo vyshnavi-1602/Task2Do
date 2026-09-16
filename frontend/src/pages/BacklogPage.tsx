@@ -80,7 +80,15 @@ export default function BacklogPage() {
 
   const startSprint = useMutation({
     mutationFn: async (sprintId: string) => {
-      await apiClient.patch(`/workspaces/${workspaceId}/projects/${projectId}/sprints/${sprintId}`, { status: 'ACTIVE' });
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 14); // Default 2 week sprint
+
+      await apiClient.patch(`/workspaces/${workspaceId}/projects/${projectId}/sprints/${sprintId}`, { 
+        status: 'ACTIVE',
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprints', projectId] });
